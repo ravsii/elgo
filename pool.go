@@ -1,8 +1,9 @@
 package elgo
 
 import (
+	"fmt"
 	"math"
-	"sync"
+	"sort"
 	"sync/atomic"
 	"time"
 )
@@ -13,9 +14,9 @@ type Match struct {
 }
 
 type Pool struct {
-	players   sync.Map
-	inQueue   atomic.Int32
-	rangeLock sync.Mutex
+	players *playerStore
+	inQueue atomic.Int32
+	queueSf chan int8
 
 	playersCh chan Player
 	matchCh   chan Match
@@ -31,8 +32,10 @@ type Pool struct {
 // Pools aren't connected to each other so creating multiple of them is safe.
 func NewPool(options ...OptionFunc) *Pool {
 	p := &Pool{
+		players:   newStore(),
 		playersCh: make(chan Player),
 		matchCh:   make(chan Match),
+		queueSf:   make(chan int8, 1),
 
 		retrySearchIn:         5 * time.Second,
 		increaseRatingBorders: 100,
@@ -68,11 +71,6 @@ func (p *Pool) Close() map[string]Player {
 	close(p.matchCh)
 
 	playersLeft := make(map[string]Player, 0)
-	p.players.Range(func(key, value any) bool {
-		playersLeft[key.(string)] = value.(Player)
-		p.players.Delete(key)
-		return true
-	})
 
 	p.inQueue.Store(0)
 
@@ -81,7 +79,7 @@ func (p *Pool) Close() map[string]Player {
 
 func (p *Pool) acceptPlayers() {
 	for player := range p.playersCh {
-		p.players.Store(player.Identify(), player)
+		p.players.Set(player.Identify(), player)
 		p.inQueue.Add(1)
 
 		go p.findMatchFor(player)
@@ -93,9 +91,12 @@ func (p *Pool) findMatchFor(player Player) {
 	interval := p.increaseRatingBorders
 
 	for {
+		p.queueSf <- 1
 		if ok := p._findMatch(player, interval); ok {
+			<-p.queueSf
 			break
 		}
+		<-p.queueSf
 
 		interval += p.increaseRatingBorders
 		<-t.C
@@ -106,32 +107,19 @@ func (p *Pool) findMatchFor(player Player) {
 
 func (p *Pool) _findMatch(player Player, allowedInterval float64) bool {
 	identifier := player.Identify()
-	found := false
 
-	p.rangeMap(func(opponentIdent string, opponent Player) bool {
+	for opponentIdent, opponent := range p.players.All() {
 		if identifier == opponentIdent {
-			return true
+			continue
 		}
 
 		if ok := couldMatch(player, opponent, allowedInterval); ok {
 			p.createMatch(player, opponent)
-			found = true
-			return false
+			return true
 		}
+	}
 
-		return true
-	})
-
-	return found
-}
-
-func (p *Pool) rangeMap(fn func(ident string, player Player) bool) {
-	p.rangeLock.Lock()
-	defer p.rangeLock.Unlock()
-
-	p.players.Range(func(k, v any) bool {
-		return fn(k.(string), v.(Player))
-	})
+	return false
 }
 
 func (p *Pool) createMatch(p1, p2 Player) {
@@ -141,10 +129,25 @@ func (p *Pool) createMatch(p1, p2 Player) {
 }
 
 func (p *Pool) removePlayersFromQueue(players ...Player) {
+	p.printMap()
 	for _, player := range players {
 		p.players.Delete(player.Identify())
 		p.inQueue.Add(-1)
 	}
+	p.printMap()
+}
+
+func (p *Pool) printMap() {
+	sl := make([]string, 0)
+
+	for k := range p.players.All() {
+		sl = append(sl, k)
+	}
+	sort.Slice(sl, func(i, j int) bool {
+		return sl[i] < sl[j]
+	})
+
+	fmt.Println(p.Size(), ":", sl)
 }
 
 func couldMatch(p1, p2 Player, allowedInterval float64) bool {

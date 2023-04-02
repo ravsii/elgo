@@ -30,5 +30,5 @@ func main() {
 		fmt.Println("match", match, ok)
 	}
 
-	// fmt.Println(pool.Close())
+	fmt.Println(pool.Close())
 }
