@@ -2,29 +2,33 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/ravsii/elgo"
 	"github.com/ravsii/elgo/examples/queue/player"
 )
 
 func main() {
-	P1 := &player.Player{Name: "Alex", EloRating: 1000}
-	P2 := &player.Player{Name: "Greg", EloRating: 1500}
-	P3 := &player.Player{Name: "Kate", EloRating: 3000}
-	P4 := &player.Player{Name: "Oleg", EloRating: 5000}
-
-	pool := elgo.NewPool()
+	pool := elgo.NewPool(elgo.WithRetry(1*time.Second), elgo.WithIncreaseInterval(0.01))
 	playerChan := pool.Queue()
 
-	playerChan <- P1
-	playerChan <- P2
-	playerChan <- P3
-	playerChan <- P4
+	go func() {
+		t := time.NewTicker(time.Second)
+		for {
+			fmt.Println("size", pool.Size())
+			<-t.C
+		}
+	}()
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 10; i++ {
+		playerChan <- &player.Player{Name: fmt.Sprint(i), EloRating: rand.Float64()}
+	}
+
+	for i := 0; i < 5; i++ {
 		match, ok := <-pool.Matches()
 		fmt.Println("match", match, ok)
 	}
 
-	fmt.Println(pool.Close())
+	// fmt.Println(pool.Close())
 }

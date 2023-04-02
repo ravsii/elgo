@@ -1,5 +1,7 @@
 package player
 
+import "fmt"
+
 type Player struct {
 	Name      string
 	EloRating float64
@@ -18,5 +20,5 @@ func (p *Player) SetRating(rating float64) {
 }
 
 func (p *Player) String() string {
-	return p.Name
+	return fmt.Sprintf("%s (%f)", p.Name, p.EloRating)
 }
