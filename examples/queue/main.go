@@ -10,24 +10,21 @@ import (
 )
 
 func main() {
-	pool := elgo.NewPool(elgo.WithRetry(1*time.Second), elgo.WithIncreaseInterval(0.01))
-	playerChan := pool.Queue()
+	pool := elgo.NewPool(elgo.WithRetry(1*time.Second), elgo.WithIncreaseInterval(0.03))
 
-	go func() {
-		t := time.NewTicker(time.Second)
-		for {
-			fmt.Println("size", pool.Size())
-			<-t.C
-		}
-	}()
-
-	for i := 0; i < 10; i++ {
-		playerChan <- &player.Player{Name: fmt.Sprint(i), EloRating: rand.Float64()}
+	for i := 0; i < 1000; i++ {
+		pool.AddPlayer(&player.Player{Name: fmt.Sprint(i), EloRating: rand.Float64()})
 	}
 
-	for i := 0; i < 5; i++ {
-		match, ok := <-pool.Matches()
-		fmt.Println("match", match, ok)
+	fmt.Println("pool size", pool.Size())
+
+	go pool.Run()
+
+	for i := 0; i < 500; i++ {
+		match := <-pool.Matches()
+		p1 := match.Player1.(*player.Player)
+		p2 := match.Player2.(*player.Player)
+		fmt.Println(i+1, "match", p1, p2)
 	}
 
 	fmt.Println(pool.Close())

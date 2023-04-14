@@ -1,10 +1,8 @@
 package elgo
 
 import (
-	"fmt"
 	"math"
-	"sort"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -13,13 +11,18 @@ type Match struct {
 	Player2 Player
 }
 
-type Pool struct {
-	players *playerStore
-	inQueue atomic.Int32
-	queueSf chan int8
+type poolPlayer struct {
+	player Player
 
-	playersCh chan Player
-	matchCh   chan Match
+	ratingBorders float64
+	retryAt       time.Time
+}
+
+type Pool struct {
+	players     map[string]*poolPlayer
+	playersLock sync.RWMutex
+
+	matchCh chan Match
 
 	retrySearchIn time.Duration
 
@@ -32,10 +35,8 @@ type Pool struct {
 // Pools aren't connected to each other so creating multiple of them is safe.
 func NewPool(options ...OptionFunc) *Pool {
 	p := &Pool{
-		players:   newStore(),
-		playersCh: make(chan Player),
-		matchCh:   make(chan Match),
-		queueSf:   make(chan int8, 1),
+		players: make(map[string]*poolPlayer),
+		matchCh: make(chan Match),
 
 		retrySearchIn:         5 * time.Second,
 		increaseRatingBorders: 100,
@@ -45,14 +46,18 @@ func NewPool(options ...OptionFunc) *Pool {
 		option(p)
 	}
 
-	go p.acceptPlayers()
-
 	return p
 }
 
-// Queue returns a queue channel to send new players to.
-func (p *Pool) Queue() chan<- Player {
-	return p.playersCh
+// AddPlayer returns a queue channel to send new players to.
+func (p *Pool) AddPlayer(player Player) {
+	p.playersLock.Lock()
+	p.players[player.Identify()] = &poolPlayer{
+		player:        player,
+		ratingBorders: p.increaseRatingBorders,
+		retryAt:       time.Now(),
+	}
+	p.playersLock.Unlock()
 }
 
 // Matches returns a channel that sends found matches between players.
@@ -60,97 +65,82 @@ func (p *Pool) Matches() <-chan Match {
 	return p.matchCh
 }
 
-// Size returns current amount of players in queue
-func (p *Pool) Size() int32 {
-	return p.inQueue.Load()
+// Size returns current amount of players in queue.
+// It's concurrent-safe.
+func (p *Pool) Size() int {
+	p.playersLock.RLock()
+	defer p.playersLock.RUnlock()
+	return len(p.players)
 }
 
 // Close closes the pool and return players that are still in the queue.
 func (p *Pool) Close() map[string]Player {
-	close(p.playersCh)
 	close(p.matchCh)
 
+	p.playersLock.Lock()
 	playersLeft := make(map[string]Player, 0)
-
-	p.inQueue.Store(0)
+	for id, player := range p.players {
+		playersLeft[id] = player.player
+	}
+	p.players = nil
+	p.playersLock.Unlock()
 
 	return playersLeft
 }
 
-func (p *Pool) acceptPlayers() {
-	for player := range p.playersCh {
-		p.players.Set(player.Identify(), player)
-		p.inQueue.Add(1)
-
-		go p.findMatchFor(player)
-	}
-}
-
-func (p *Pool) findMatchFor(player Player) {
-	t := time.NewTicker(p.retrySearchIn)
-	interval := p.increaseRatingBorders
+func (p *Pool) Run() {
+	ticker := time.NewTicker(p.retrySearchIn)
 
 	for {
-		p.queueSf <- 1
-		if ok := p._findMatch(player, interval); ok {
-			<-p.queueSf
-			break
+		if !p.iteration() {
+			<-ticker.C
 		}
-		<-p.queueSf
-
-		interval += p.increaseRatingBorders
-		<-t.C
 	}
-
-	t.Stop()
 }
 
-func (p *Pool) _findMatch(player Player, allowedInterval float64) bool {
-	identifier := player.Identify()
+func (p *Pool) iteration() bool {
+	if p.Size() < 2 {
+		return false
+	}
 
-	for opponentIdent, opponent := range p.players.All() {
-		if identifier == opponentIdent {
-			continue
+	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+	for id1, p1 := range p.players {
+		for id2, p2 := range p.players {
+			if id1 == id2 {
+				continue
+			}
+
+			if ok := couldMatch(p1, p2); ok {
+				p.createMatch(p1, p2)
+				return true
+			}
+
 		}
 
-		if ok := couldMatch(player, opponent, allowedInterval); ok {
-			p.createMatch(player, opponent)
-			return true
-		}
+		p1.ratingBorders += p.increaseRatingBorders
 	}
 
 	return false
 }
 
-func (p *Pool) createMatch(p1, p2 Player) {
+func (p *Pool) createMatch(p1, p2 *poolPlayer) {
 	p.removePlayersFromQueue(p1, p2)
-
-	p.matchCh <- Match{Player1: p1, Player2: p2}
+	p.matchCh <- Match{Player1: p1.player, Player2: p2.player}
 }
 
-func (p *Pool) removePlayersFromQueue(players ...Player) {
-	p.printMap()
+func (p *Pool) removePlayersFromQueue(players ...*poolPlayer) {
 	for _, player := range players {
-		p.players.Delete(player.Identify())
-		p.inQueue.Add(-1)
+		delete(p.players, player.player.Identify())
 	}
-	p.printMap()
 }
 
-func (p *Pool) printMap() {
-	sl := make([]string, 0)
-
-	for k := range p.players.All() {
-		sl = append(sl, k)
-	}
-	sort.Slice(sl, func(i, j int) bool {
-		return sl[i] < sl[j]
-	})
-
-	fmt.Println(p.Size(), ":", sl)
-}
-
-func couldMatch(p1, p2 Player, allowedInterval float64) bool {
-	diff := math.Abs(p1.Rating() - p2.Rating())
-	return allowedInterval > diff
+// couldMatch checks the difference between players' ratings
+// AND their allowed interval of both.
+//
+// Difference (absolute value) in players' rating should be less or equals
+// to the allowed rating borders of each player.
+func couldMatch(p1, p2 *poolPlayer) bool {
+	diff := math.Abs(p1.player.Rating() - p2.player.Rating())
+	return p1.ratingBorders >= diff && p2.ratingBorders >= diff
 }
