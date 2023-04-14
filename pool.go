@@ -12,8 +12,7 @@ var (
 )
 
 type poolPlayer struct {
-	player Player
-
+	player        Player
 	ratingBorders float64
 	retryAt       time.Time
 }
@@ -32,9 +31,13 @@ type Pool struct {
 
 	matchCh chan Match
 
-	// retrySearchIn holds a duration that should be waited before iterations
+	// retryPlayerSearch holds a duration how much time a player should wait
+	// before the next iteration try if no match was found.
+	retryPlayerSearch time.Duration
+
+	// retryGlobalSearch holds a duration how much time a pool should wait
 	// if no match was found.
-	retrySearchIn time.Duration
+	retryGlobalSearch time.Duration
 
 	// increaseRatingBorders shows by how many points seaching borders will be
 	// increased when no opponent was found
@@ -48,7 +51,8 @@ func NewPool(options ...OptionFunc) *Pool {
 		players: make(map[string]*poolPlayer),
 		matchCh: make(chan Match),
 
-		retrySearchIn:         5 * time.Second,
+		retryPlayerSearch:     time.Second,
+		retryGlobalSearch:     time.Second,
 		increaseRatingBorders: 100,
 	}
 
@@ -107,8 +111,16 @@ func (p *Pool) Close() map[string]Player {
 	return playersLeft
 }
 
+// Run start an infinite loop for matchmaking. Usually it's a good idea to
+// use it as a goroutine:
+//
+//	go pool.Run()
+//
+// And when you need to close it, use:
+//
+//	playersInQueue := pool.Close()
 func (p *Pool) Run() {
-	ticker := time.NewTicker(p.retrySearchIn)
+	ticker := time.NewTicker(p.retryPlayerSearch)
 
 	for {
 		if !p.iteration() {
@@ -117,6 +129,7 @@ func (p *Pool) Run() {
 	}
 }
 
+// iteration returns true if a match was found.
 func (p *Pool) iteration() bool {
 	if p.Size() < 2 {
 		return false
@@ -125,6 +138,12 @@ func (p *Pool) iteration() bool {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
 	for id1, p1 := range p.players {
+
+		// skipping a player if his retry time is still "on cooldown".
+		// if p1.retryAt.Compare(time.Now()) <= 0 {
+		// 	continue
+		// }
+
 		for id2, p2 := range p.players {
 			if id1 == id2 {
 				continue
@@ -138,6 +157,7 @@ func (p *Pool) iteration() bool {
 		}
 
 		p1.ratingBorders += p.increaseRatingBorders
+		p1.retryAt = p1.retryAt.Add(p.retryPlayerSearch)
 	}
 
 	return false

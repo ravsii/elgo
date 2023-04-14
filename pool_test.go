@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ravsii/elgo"
 )
@@ -53,7 +54,7 @@ func TestPool3(t *testing.T) {
 func TestPool1000(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool()
+	pool := elgo.NewPool(elgo.WithGlobalRetry(time.Millisecond), elgo.WithPlayerRetry(time.Millisecond))
 
 	for i := 0; i < 1000; i++ {
 		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
@@ -77,7 +78,7 @@ func TestPool1000(t *testing.T) {
 func TestPool1001(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool()
+	pool := elgo.NewPool(elgo.WithGlobalRetry(time.Millisecond), elgo.WithPlayerRetry(time.Millisecond))
 
 	for i := 0; i < 1001; i++ {
 		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))

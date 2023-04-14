@@ -4,11 +4,19 @@ import "time"
 
 type OptionFunc func(*Pool)
 
-// WithRetry sets a retry duration at which system would again
-// try to find opponents for players.
-func WithRetry(d time.Duration) OptionFunc {
+// WithPlayerRetry sets a duration that a player should wait before a pool
+// should try and find a match for them again.
+func WithPlayerRetry(d time.Duration) OptionFunc {
 	return func(p *Pool) {
-		p.retrySearchIn = d
+		p.retryPlayerSearch = d
+	}
+}
+
+// WithGlobalRetry sets a duration that a pool should wait between iterations
+// if no match was found.
+func WithGlobalRetry(d time.Duration) OptionFunc {
+	return func(p *Pool) {
+		p.retryPlayerSearch = d
 	}
 }
 
