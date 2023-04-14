@@ -1,6 +1,7 @@
 package elgo_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -11,8 +12,8 @@ func TestPool2(t *testing.T) {
 	t.Parallel()
 
 	pool := elgo.NewPool()
-	pool.AddPlayer(CreatePlayerMock("Test1", 1000))
-	pool.AddPlayer(CreatePlayerMock("Test2", 1000))
+	_ = pool.AddPlayer(CreatePlayerMock("Test1", 1000))
+	_ = pool.AddPlayer(CreatePlayerMock("Test2", 1000))
 
 	go pool.Run()
 
@@ -31,9 +32,9 @@ func TestPool3(t *testing.T) {
 	t.Parallel()
 
 	pool := elgo.NewPool()
-	pool.AddPlayer(CreatePlayerMock("Test1", 1000))
-	pool.AddPlayer(CreatePlayerMock("Test2", 1000))
-	pool.AddPlayer(CreatePlayerMock("Test3", 1000))
+	_ = pool.AddPlayer(CreatePlayerMock("Test1", 1000))
+	_ = pool.AddPlayer(CreatePlayerMock("Test2", 1000))
+	_ = pool.AddPlayer(CreatePlayerMock("Test3", 1000))
 
 	go pool.Run()
 
@@ -55,7 +56,7 @@ func TestPool1000(t *testing.T) {
 	pool := elgo.NewPool()
 
 	for i := 0; i < 1000; i++ {
-		pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
+		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
 	}
 
 	go pool.Run()
@@ -79,7 +80,7 @@ func TestPool1001(t *testing.T) {
 	pool := elgo.NewPool()
 
 	for i := 0; i < 1001; i++ {
-		pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
+		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
 	}
 
 	go pool.Run()
@@ -94,5 +95,19 @@ func TestPool1001(t *testing.T) {
 	queue := pool.Close()
 	if len(queue) != 1 {
 		t.Errorf("test queue should have length 1, got: %v", queue)
+	}
+}
+
+func TestErrAlreadyExists(t *testing.T) {
+	t.Parallel()
+
+	pool := elgo.NewPool()
+
+	player := CreatePlayerMock("mock", 1000)
+
+	_ = pool.AddPlayer(player)
+	err := pool.AddPlayer(player)
+	if err == nil || !errors.Is(err, elgo.ErrAlreadyExists) {
+		t.Errorf("expected error %s, got %s", elgo.ErrAlreadyExists, err)
 	}
 }

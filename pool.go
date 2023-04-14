@@ -1,9 +1,14 @@
 package elgo
 
 import (
+	"errors"
 	"math"
 	"sync"
 	"time"
+)
+
+var (
+	ErrAlreadyExists = errors.New("player already exists")
 )
 
 type Match struct {
@@ -50,14 +55,23 @@ func NewPool(options ...OptionFunc) *Pool {
 }
 
 // AddPlayer returns a queue channel to send new players to.
-func (p *Pool) AddPlayer(player Player) {
+// ErrAlreadyExists is returned if identifier is already taken.
+func (p *Pool) AddPlayer(player Player) error {
 	p.playersLock.Lock()
-	p.players[player.Identify()] = &poolPlayer{
+	defer p.playersLock.Unlock()
+
+	id := player.Identify()
+	if _, ok := p.players[id]; ok {
+		return ErrAlreadyExists
+	}
+
+	p.players[id] = &poolPlayer{
 		player:        player,
 		ratingBorders: p.increaseRatingBorders,
 		retryAt:       time.Now(),
 	}
-	p.playersLock.Unlock()
+
+	return nil
 }
 
 // Matches returns a channel that sends found matches between players.
