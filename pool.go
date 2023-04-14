@@ -11,11 +11,6 @@ var (
 	ErrAlreadyExists = errors.New("player already exists")
 )
 
-type Match struct {
-	Player1 Player
-	Player2 Player
-}
-
 type poolPlayer struct {
 	player Player
 
@@ -23,12 +18,22 @@ type poolPlayer struct {
 	retryAt       time.Time
 }
 
+// Match is a struct that holds 2 players who should be matched.
+type Match struct {
+	Player1 Player
+	Player2 Player
+}
+
+// Pool is a main struct for matchmaking pool.
+// Use NewPool(options...) to create a new pool.
 type Pool struct {
 	players     map[string]*poolPlayer
 	playersLock sync.RWMutex
 
 	matchCh chan Match
 
+	// retrySearchIn holds a duration that should be waited before iterations
+	// if no match was found.
 	retrySearchIn time.Duration
 
 	// increaseRatingBorders shows by how many points seaching borders will be
