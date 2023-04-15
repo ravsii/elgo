@@ -28,6 +28,20 @@ type Calculator struct {
 	kFactors kFactors
 }
 
+// NewCalc creates a new calculator for rating changes.
+// k is used as a default option and you can pass multiple k factors that
+// will be applied depending on players' rating. Thus:
+//
+//	NewCalc(5, WithKFactor(1000, 20), WithKFactor(1500, 30))
+//
+// will be used as:
+//
+//	rating > 0 && rating < 1000, k = 5
+//	rating >= 1000 && rating < 1500, k = 20
+//	rating >= 1500, k = 30
+//
+// There's no option to add max value for rating ranges,
+// it's either infinite or next factor's min value.
 func NewCalc(k float64, options ...calcOption) *Calculator {
 	c := &Calculator{k: k}
 
