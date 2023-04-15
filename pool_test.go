@@ -18,10 +18,7 @@ func TestPool2(t *testing.T) {
 
 	go pool.Run()
 
-	_, ok := <-pool.Matches()
-	if !ok {
-		t.Error("channel is closed, but it shouldn't be")
-	}
+	acceptMatch(pool, t)
 
 	queue := pool.Close()
 	if len(queue) != 0 {
@@ -39,10 +36,7 @@ func TestPool3(t *testing.T) {
 
 	go pool.Run()
 
-	_, ok := <-pool.Matches()
-	if !ok {
-		t.Error("channel is closed, but it shouldn't be")
-	}
+	acceptMatch(pool, t)
 
 	queue := pool.Close()
 	if len(queue) != 1 {
@@ -63,10 +57,7 @@ func TestPool1000(t *testing.T) {
 	go pool.Run()
 
 	for i := 0; i < 500; i++ {
-		_, ok := <-pool.Matches()
-		if !ok {
-			t.Error("channel is closed, but it shouldn't be")
-		}
+		acceptMatch(pool, t)
 	}
 
 	queue := pool.Close()
@@ -87,10 +78,7 @@ func TestPool1001(t *testing.T) {
 	go pool.Run()
 
 	for i := 0; i < 500; i++ {
-		_, ok := <-pool.Matches()
-		if !ok {
-			t.Error("channel is closed, but it shouldn't be")
-		}
+		acceptMatch(pool, t)
 	}
 
 	queue := pool.Close()
@@ -110,5 +98,30 @@ func TestErrAlreadyExists(t *testing.T) {
 	err := pool.AddPlayer(player)
 	if err == nil || !errors.Is(err, elgo.ErrAlreadyExists) {
 		t.Errorf("expected error %s, got %s", elgo.ErrAlreadyExists, err)
+	}
+}
+
+func TestMatchLongWait(t *testing.T) {
+	t.Parallel()
+
+	pool := elgo.NewPool(elgo.WithIncreaseInterval(100), elgo.WithPlayerRetry(100*time.Millisecond), elgo.WithGlobalRetry(100*time.Millisecond))
+	_ = pool.AddPlayer(CreatePlayerMock("1", 100))
+	_ = pool.AddPlayer(CreatePlayerMock("2", 500))
+
+	go pool.Run()
+
+	acceptMatch(pool, t)
+
+	queue := pool.Close()
+	if len(queue) != 0 {
+		t.Errorf("test queue should be empty, got: %v", queue)
+	}
+}
+
+// acceptMatch tries to read from match channel, throws error otherwise.
+func acceptMatch(pool *elgo.Pool, t *testing.T) {
+	_, ok := <-pool.Matches()
+	if !ok {
+		t.Error("channel is closed, but it shouldn't be")
 	}
 }

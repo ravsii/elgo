@@ -1,32 +1,53 @@
 package elgo_test
 
 import (
+	"math"
 	"testing"
+
+	"github.com/ravsii/elgo"
 )
+
+func TestWinnerIsNil(t *testing.T) {
+	t.Parallel()
+
+	loserExpected := 1000.
+	loser := CreatePlayerMock("1", loserExpected)
+
+	elgo.CalcRating(nil, loser)
+
+	if math.Ceil(loser.Rating()) != loserExpected {
+		t.Errorf("loser rating: want %f got %f", loser.Rating(), loserExpected)
+	}
+}
+
+func TestLoserIsNil(t *testing.T) {
+	t.Parallel()
+
+	winnerExpected := 1000.
+	winner := CreatePlayerMock("1", winnerExpected)
+
+	elgo.CalcRating(winner, nil)
+
+	if math.Ceil(winner.Rating()) != winnerExpected {
+		t.Errorf("winner rating: want %f got %f", winner.Rating(), winnerExpected)
+	}
+}
 
 func TestCalcRating(t *testing.T) {
 	t.Parallel()
 
-	// winner := mocks.NewRatinger(t)
-	// loser := mocks.NewRatinger(t)
+	winner := CreatePlayerMock("1", 1200)
+	loser := CreatePlayerMock("1", 1000)
+	winnerExpected := 1208.
+	loserExpected := 993.
 
-	// winnerRating := 1200.0
-	// loserRating := 1000.0
+	elgo.CalcRating(winner, loser)
 
-	// winner.On("Rating").Return(winnerRating)
-	// loser.On("Rating").Return(loserRating)
+	if math.Ceil(winner.Rating()) != winnerExpected {
+		t.Errorf("winner rating: want %f got %f", winner.Rating(), winnerExpected)
+	}
 
-	// winner.On("SetRating", mock.AnythingOfType("float64")).Run(func(args mock.Arguments) {
-	// 	winnerRating = args.Get(0).(float64)
-	// })
-
-	// loser.On("SetRating", mock.AnythingOfType("float64")).Run(func(args mock.Arguments) {
-	// 	loserRating = args.Get(0).(float64)
-	// })
-
-	// elgo.CalcRating(winner, loser)
-
-	// if math.Round(winnerRating) != 1207 || math.Round(loserRating) != 993 {
-	// 	t.Error("wrong results")
-	// }
+	if math.Ceil(loser.Rating()) != loserExpected {
+		t.Errorf("loser rating: want %f got %f", loser.Rating(), loserExpected)
+	}
 }
