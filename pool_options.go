@@ -2,11 +2,11 @@ package elgo
 
 import "time"
 
-type OptionFunc func(*Pool)
+type PoolOpt func(*Pool)
 
 // WithPlayerRetry sets a duration that a player should wait before a pool
 // should try and find a match for them again.
-func WithPlayerRetry(d time.Duration) OptionFunc {
+func WithPlayerRetry(d time.Duration) PoolOpt {
 	return func(p *Pool) {
 		p.retryPlayerSearch = d
 	}
@@ -14,7 +14,7 @@ func WithPlayerRetry(d time.Duration) OptionFunc {
 
 // WithGlobalRetry sets a duration that a pool should wait between iterations
 // if no match was found.
-func WithGlobalRetry(d time.Duration) OptionFunc {
+func WithGlobalRetry(d time.Duration) PoolOpt {
 	return func(p *Pool) {
 		p.retryPlayerSearch = d
 	}
@@ -22,7 +22,7 @@ func WithGlobalRetry(d time.Duration) OptionFunc {
 
 // WithIncreaseInterval sets an amount of points that will be added
 // on a new search, if no opponent was found previously
-func WithIncreaseInterval(interval float64) OptionFunc {
+func WithIncreaseInterval(interval float64) PoolOpt {
 	return func(p *Pool) {
 		p.increaseRatingBorders = interval
 	}

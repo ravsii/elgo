@@ -42,10 +42,10 @@ type Calculator struct {
 //
 // There's no option to add max value for rating ranges,
 // it's either infinite or next factor's min value.
-func NewCalc(k float64, options ...calcOption) *Calculator {
+func NewCalc(k float64, opts ...CalcOpt) *Calculator {
 	c := &Calculator{k: k}
 
-	for _, option := range options {
+	for _, option := range opts {
 		option(c)
 	}
 
@@ -56,7 +56,7 @@ func NewCalc(k float64, options ...calcOption) *Calculator {
 
 // CalcRating calculates rating for winner and loser and calls SetRating for
 // both of them.
-func CalcRating(winner, loser Ratinger) {
+func (c *Calculator) CalcRating(winner, loser Ratinger) (newWinnerRating, newLoserRating float64) {
 	if winner == nil || loser == nil {
 		return
 	}
@@ -64,11 +64,21 @@ func CalcRating(winner, loser Ratinger) {
 	winnerProb := (1.0 / (1.0 + math.Pow(10.0, ((loser.Rating()-winner.Rating())/400.0))))
 	loserProb := (1.0 / (1.0 + math.Pow(10.0, ((winner.Rating()-loser.Rating())/400.0))))
 
-	K := 30.0
+	winnerK := c.getK(winner)
+	loserK := c.getK(winner)
 
-	newWinnerRating := winner.Rating() + K*(1-winnerProb)
-	newLoserRating := loser.Rating() + K*(-loserProb)
+	newWinnerRating = winner.Rating() + winnerK*(1-winnerProb)
+	newLoserRating = loser.Rating() + loserK*(-loserProb)
 
-	winner.SetRating(newWinnerRating)
-	loser.SetRating(newLoserRating)
+	return newWinnerRating, newLoserRating
+}
+
+func (c *Calculator) getK(r Ratinger) float64 {
+	for _, bracket := range c.kFactors {
+		if bracket.startsAt >= r.Rating() {
+			return bracket.k
+		}
+	}
+
+	return c.k
 }

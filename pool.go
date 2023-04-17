@@ -46,7 +46,7 @@ type Pool struct {
 
 // NewPool creates a new pool for players.
 // Pools aren't connected to each other so creating multiple of them is safe.
-func NewPool(options ...OptionFunc) *Pool {
+func NewPool(opts ...PoolOpt) *Pool {
 	p := &Pool{
 		players: make(map[string]*poolPlayer),
 		matchCh: make(chan Match),
@@ -56,7 +56,7 @@ func NewPool(options ...OptionFunc) *Pool {
 		increaseRatingBorders: 100,
 	}
 
-	for _, option := range options {
+	for _, option := range opts {
 		option(p)
 	}
 
