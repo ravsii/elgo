@@ -94,6 +94,30 @@ func TestCalculations(t *testing.T) {
 		}
 	})
 
+	t.Run("draw p1 is nil", func(t *testing.T) {
+		t.Parallel()
+
+		calc := elgo.NewCalc(1)
+		p2 := CreatePlayerMock("p1", 1)
+		p1Rating, p2Rating := calc.Win(nil, p2)
+
+		if p1Rating != p2Rating || p2Rating != 0 {
+			t.Errorf("p2 rating: want 0 got %f", p2.Rating())
+		}
+	})
+
+	t.Run("draw p2 is nil", func(t *testing.T) {
+		t.Parallel()
+
+		calc := elgo.NewCalc(1)
+		p1 := CreatePlayerMock("p1", 1)
+		p1Rating, p2Rating := calc.Win(p1, nil)
+
+		if p1Rating != p2Rating || p2Rating != 0 {
+			t.Errorf("p1 rating: want 0 got %f", p1.Rating())
+		}
+	})
+
 	t.Run("draw brackets", func(t *testing.T) {
 		t.Parallel()
 
