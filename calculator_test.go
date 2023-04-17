@@ -99,7 +99,7 @@ func TestCalculations(t *testing.T) {
 
 		calc := elgo.NewCalc(1)
 		p2 := CreatePlayerMock("p1", 1)
-		p1Rating, p2Rating := calc.Win(nil, p2)
+		p1Rating, p2Rating := calc.Draw(nil, p2)
 
 		if p1Rating != p2Rating || p2Rating != 0 {
 			t.Errorf("p2 rating: want 0 got %f", p2.Rating())
@@ -111,7 +111,7 @@ func TestCalculations(t *testing.T) {
 
 		calc := elgo.NewCalc(1)
 		p1 := CreatePlayerMock("p1", 1)
-		p1Rating, p2Rating := calc.Win(p1, nil)
+		p1Rating, p2Rating := calc.Draw(p1, nil)
 
 		if p1Rating != p2Rating || p2Rating != 0 {
 			t.Errorf("p1 rating: want 0 got %f", p1.Rating())
