@@ -10,9 +10,6 @@ type Identifier interface {
 type Ratinger interface {
 	// Rating should return player's rating.
 	Rating() float64
-
-	// SetRating should change the rating of a player.
-	SetRating(float64)
 }
 
 // Player is an interface that implements Identifier and Ratinger.
