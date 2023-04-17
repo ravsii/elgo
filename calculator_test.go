@@ -7,47 +7,110 @@ import (
 	"github.com/ravsii/elgo"
 )
 
-func TestWinnerIsNil(t *testing.T) {
+func TestCalculations(t *testing.T) {
 	t.Parallel()
 
-	loserExpected := 1000.
-	loser := CreatePlayerMock("1", loserExpected)
+	t.Run("winner is nil", func(t *testing.T) {
+		t.Parallel()
 
-	elgo.CalcRating(nil, loser)
+		calc := elgo.NewCalc(1)
+		loser := CreatePlayerMock("loser", 1)
+		winnerRating, loserRating := calc.Win(nil, loser)
 
-	if math.Ceil(loser.Rating()) != loserExpected {
-		t.Errorf("loser rating: want %f got %f", loser.Rating(), loserExpected)
-	}
-}
+		if winnerRating != loserRating || loserRating != 0 {
+			t.Errorf("loser rating: want 0 got %f", loser.Rating())
+		}
+	})
 
-func TestLoserIsNil(t *testing.T) {
-	t.Parallel()
+	t.Run("loser is nil", func(t *testing.T) {
+		t.Parallel()
 
-	winnerExpected := 1000.
-	winner := CreatePlayerMock("1", winnerExpected)
+		calc := elgo.NewCalc(1)
+		winner := CreatePlayerMock("winner", 1)
+		winnerRating, loserRating := calc.Win(nil, winner)
 
-	elgo.CalcRating(winner, nil)
+		if winnerRating != loserRating || winnerRating != 0 {
+			t.Errorf("winner rating: want 0 got %f", winner.Rating())
+		}
+	})
 
-	if math.Ceil(winner.Rating()) != winnerExpected {
-		t.Errorf("winner rating: want %f got %f", winner.Rating(), winnerExpected)
-	}
-}
+	t.Run("win", func(t *testing.T) {
+		t.Parallel()
 
-func TestCalcRating(t *testing.T) {
-	t.Parallel()
+		calc := elgo.NewCalc(30)
+		winner := CreatePlayerMock("1", 1200)
+		loser := CreatePlayerMock("2", 1000)
+		winnerExpected := 1208.
+		loserExpected := 993.
 
-	winner := CreatePlayerMock("1", 1200)
-	loser := CreatePlayerMock("1", 1000)
-	winnerExpected := 1208.
-	loserExpected := 993.
+		winnerRating, loserRating := calc.Win(winner, loser)
 
-	elgo.CalcRating(winner, loser)
+		if math.Ceil(winnerRating) != winnerExpected {
+			t.Errorf("winner rating: want %f got %f", winnerExpected, winner.Rating())
+		}
 
-	if math.Ceil(winner.Rating()) != winnerExpected {
-		t.Errorf("winner rating: want %f got %f", winner.Rating(), winnerExpected)
-	}
+		if math.Ceil(loserRating) != loserExpected {
+			t.Errorf("loser rating: want %f got %f", loserExpected, loser.Rating())
+		}
+	})
 
-	if math.Ceil(loser.Rating()) != loserExpected {
-		t.Errorf("loser rating: want %f got %f", loser.Rating(), loserExpected)
-	}
+	t.Run("win brackets", func(t *testing.T) {
+		t.Parallel()
+
+		calc := elgo.NewCalc(0, elgo.WithKFactor(1000, 20), elgo.WithKFactor(2000, 40))
+		winner := CreatePlayerMock("1", 1000)
+		loser := CreatePlayerMock("2", 2000)
+		winnerExpected := 1020.
+		loserExpected := 1961.
+
+		winnerRating, loserRating := calc.Win(winner, loser)
+
+		if math.Ceil(winnerRating) != winnerExpected {
+			t.Errorf("winner rating: want %f got %f", winnerExpected, winner.Rating())
+		}
+
+		if math.Ceil(loserRating) != loserExpected {
+			t.Errorf("loser rating: want %f got %f", loserExpected, loser.Rating())
+		}
+	})
+
+	t.Run("draw", func(t *testing.T) {
+		t.Parallel()
+
+		calc := elgo.NewCalc(40)
+		p1 := CreatePlayerMock("1", 2000)
+		p2 := CreatePlayerMock("2", 1000)
+		p1Expected := 1981.
+		p2Expected := 1020.
+
+		p1Rating, p2Rating := calc.Draw(p1, p2)
+
+		if math.Ceil(p1Rating) != p1Expected {
+			t.Errorf("p1 rating: want %f got %f", p1Expected, p1.Rating())
+		}
+
+		if math.Ceil(p2Rating) != p2Expected {
+			t.Errorf("p2 rating: want %f got %f", p2Expected, p2.Rating())
+		}
+	})
+
+	t.Run("draw brackets", func(t *testing.T) {
+		t.Parallel()
+
+		calc := elgo.NewCalc(0, elgo.WithKFactor(1000, 1), elgo.WithKFactor(2000, 40))
+		p1 := CreatePlayerMock("1", 2000)
+		p2 := CreatePlayerMock("2", 1000)
+		p1Expected := 1981.
+		p2Expected := 1001.
+
+		p1Rating, p2Rating := calc.Draw(p1, p2)
+
+		if math.Ceil(p1Rating) != p1Expected {
+			t.Errorf("p1 rating: want %f got %f", p1Expected, p1.Rating())
+		}
+
+		if math.Ceil(p2Rating) != p2Expected {
+			t.Errorf("p2 rating: want %f got %f", p2Expected, p2.Rating())
+		}
+	})
 }
