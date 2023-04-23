@@ -36,7 +36,7 @@ type Pool struct {
 	playerRetryInterval time.Duration
 
 	// globalRetryInterval holds a duration how much time a pool
-	// should wait if not match was found (created).
+	// should wait if not a single match was found (created).
 	globalRetryInterval time.Duration
 
 	// playersBordersIncreaseBy shows by how many points seaching borders

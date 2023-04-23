@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	pool := elgo.NewPool(elgo.WithIncreaseInterval(0.03))
+	pool := elgo.NewPool(elgo.WithIncreasePlayerBorderBy(0.03))
 
 	for i := 0; i < 1000; i++ {
 		pool.AddPlayer(&player.Player{Name: fmt.Sprint(i), EloRating: rand.Float64()})

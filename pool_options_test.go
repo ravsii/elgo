@@ -10,7 +10,7 @@ func TestWithIncreaseIntervals(t *testing.T) {
 
 	var (
 		expected = 1000.
-		pool     = NewPool(WithIncreaseInterval(expected))
+		pool     = NewPool(WithIncreasePlayerBorderBy(expected))
 	)
 
 	defer pool.Close()
@@ -25,7 +25,7 @@ func TestWithPlayerRetry(t *testing.T) {
 
 	var (
 		expectedDuration = 3 * time.Hour
-		pool             = NewPool(WithPlayerRetry(expectedDuration))
+		pool             = NewPool(WithPlayerRetryInterval(expectedDuration))
 	)
 
 	defer pool.Close()
@@ -40,7 +40,7 @@ func TestWithGlobalRetry(t *testing.T) {
 
 	var (
 		expectedDuration = 3 * time.Hour
-		pool             = NewPool(WithGlobalRetry(expectedDuration))
+		pool             = NewPool(WithGlobalRetryInterval(expectedDuration))
 	)
 
 	defer pool.Close()

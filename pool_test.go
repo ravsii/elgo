@@ -37,9 +37,9 @@ func TestPool(t *testing.T) {
 			t.Parallel()
 
 			pool := elgo.NewPool(
-				elgo.WithPlayerRetry(100*time.Millisecond),
-				elgo.WithGlobalRetry(100*time.Millisecond),
-				elgo.WithIncreaseInterval(0.05))
+				elgo.WithPlayerRetryInterval(100*time.Millisecond),
+				elgo.WithGlobalRetryInterval(100*time.Millisecond),
+				elgo.WithIncreasePlayerBorderBy(0.05))
 
 			go pool.Run()
 			for i := 0; i < tc.poolSize; i++ {
@@ -75,7 +75,7 @@ func TestErrAlreadyExists(t *testing.T) {
 func TestMatchLongWait(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool(elgo.WithIncreaseInterval(100), elgo.WithPlayerRetry(100*time.Millisecond), elgo.WithGlobalRetry(100*time.Millisecond))
+	pool := elgo.NewPool(elgo.WithIncreasePlayerBorderBy(100), elgo.WithPlayerRetryInterval(100*time.Millisecond), elgo.WithGlobalRetryInterval(100*time.Millisecond))
 	_ = pool.AddPlayer(CreatePlayerMock("1", 100))
 	_ = pool.AddPlayer(CreatePlayerMock("2", 500))
 
