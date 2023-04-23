@@ -1,6 +1,16 @@
-# Elgo - Elo matchmaking module
+# Elgo - Elo matchmaking module in Go
+
 [![codecov](https://codecov.io/gh/ravsii/elgo/branch/main/graph/badge.svg?token=K3EM8Z6C7B)](https://codecov.io/gh/ravsii/elgo) [![Go Reference](https://pkg.go.dev/badge/github.com/ravsii/elgo.svg)](https://pkg.go.dev/github.com/ravsii/elgo)
 
 Elgo is a relatively small package that provides a matchmaking pool and a simple calculator for ELO-like rating with configurable `K`-factor.
 
-## TODO: Readme
+## TODO list
+
+- [ ] Add example explanation
+- [ ] Add d2lang diagrams
+- [ ] Add a git tag/version
+- [ ] Add other pool types (non-elo based)
+  - [ ] LIFO (Stack)
+  - [ ] FIFO (Queue)
+  - [ ] Other ...?
+- [ ] Add an option to use this as a service (sockets or something)
