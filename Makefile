@@ -2,4 +2,4 @@ test:
 	go test ./... -timeout 10s --count 1 --race
 
 coverage:
-	go test ./... -cover
+	go test ./... -cover -timeout 10s --count 1 --race

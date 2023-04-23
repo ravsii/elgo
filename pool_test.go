@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -61,27 +62,69 @@ func TestPool(t *testing.T) {
 func TestErrAlreadyExists(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool()
+	var (
+		pool   = elgo.NewPool()
+		player = CreatePlayerMock("mock", 1000)
+		_      = pool.AddPlayer(player)
+		err    = pool.AddPlayer(player)
+	)
 
-	player := CreatePlayerMock("mock", 1000)
-
-	_ = pool.AddPlayer(player)
-	err := pool.AddPlayer(player)
 	if err == nil || !errors.Is(err, elgo.ErrAlreadyExists) {
 		t.Errorf("expected error %s, got %s", elgo.ErrAlreadyExists, err)
 	}
 }
 
-func TestMatchLongWait(t *testing.T) {
+func TestPlayerRetryInterval(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool(elgo.WithIncreasePlayerBorderBy(100), elgo.WithPlayerRetryInterval(100*time.Millisecond), elgo.WithGlobalRetryInterval(100*time.Millisecond))
-	_ = pool.AddPlayer(CreatePlayerMock("1", 100))
-	_ = pool.AddPlayer(CreatePlayerMock("2", 500))
+	pool := elgo.NewPool(
+		elgo.WithIncreasePlayerBorderBy(100),
+		elgo.WithPlayerRetryInterval(200*time.Millisecond),
+		elgo.WithGlobalRetryInterval(time.Millisecond))
+
+	pool.AddPlayer(CreatePlayerMock("1", 100))
+	pool.AddPlayer(CreatePlayerMock("2", 1000))
 
 	go pool.Run()
 
-	acceptMatch(pool, t)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	select {
+	case <-pool.Matches():
+		wg.Done()
+	case <-time.After(10 * time.Second):
+		t.Errorf("match took too long to create")
+	}
+
+	queue := pool.Close()
+	if len(queue) != 0 {
+		t.Errorf("test queue should be empty, got: %v", queue)
+	}
+}
+
+func TestGlobalRetryInterval(t *testing.T) {
+	t.Parallel()
+
+	pool := elgo.NewPool(
+		elgo.WithIncreasePlayerBorderBy(100),
+		elgo.WithPlayerRetryInterval(time.Millisecond),
+		elgo.WithGlobalRetryInterval(1*time.Second))
+
+	pool.AddPlayer(CreatePlayerMock("1", 100))
+	pool.AddPlayer(CreatePlayerMock("2", 1000))
+
+	go pool.Run()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	select {
+	case <-pool.Matches():
+		wg.Done()
+	case <-time.After(10 * time.Second):
+		t.Errorf("match took too long to create")
+	}
 
 	queue := pool.Close()
 	if len(queue) != 0 {

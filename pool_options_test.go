@@ -44,7 +44,7 @@ func TestWithGlobalRetry(t *testing.T) {
 	)
 
 	defer pool.Close()
-	if pool.playerRetryInterval != expectedDuration {
+	if pool.globalRetryInterval != expectedDuration {
 		t.Errorf("expected global retry %d, got %d", expectedDuration, pool.globalRetryInterval)
 
 	}
