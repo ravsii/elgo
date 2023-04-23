@@ -3,87 +3,58 @@ package elgo_test
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ravsii/elgo"
 )
 
-func TestPool2(t *testing.T) {
+func TestPool(t *testing.T) {
 	t.Parallel()
 
-	pool := elgo.NewPool()
-	_ = pool.AddPlayer(CreatePlayerMock("Test1", 1000))
-	_ = pool.AddPlayer(CreatePlayerMock("Test2", 1000))
-
-	go pool.Run()
-
-	acceptMatch(pool, t)
-
-	queue := pool.Close()
-	if len(queue) != 0 {
-		t.Errorf("test queue should be empty, got: %v", queue)
-	}
-}
-
-func TestPool3(t *testing.T) {
-	t.Parallel()
-
-	pool := elgo.NewPool()
-	_ = pool.AddPlayer(CreatePlayerMock("Test1", 1000))
-	_ = pool.AddPlayer(CreatePlayerMock("Test2", 1000))
-	_ = pool.AddPlayer(CreatePlayerMock("Test3", 1000))
-
-	go pool.Run()
-
-	acceptMatch(pool, t)
-
-	queue := pool.Close()
-	if len(queue) != 1 {
-		t.Errorf("test queue should be len 1")
+	testCases := []struct {
+		name               string
+		poolSize           int
+		expectedMatches    int
+		expectedSizeClosed int
+	}{
+		{"2", 2, 1, 0},
+		{"3", 3, 1, 1},
+		{"100", 100, 50, 0},
+		{"101", 101, 50, 1},
+		{"500", 500, 250, 0},
+		{"501", 501, 250, 1},
+		{"1000", 1000, 500, 0},
+		{"1001", 1001, 500, 1},
+		{"10000", 10000, 5000, 0},
+		{"10001", 10001, 5000, 1},
 	}
 
-}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestPool1000(t *testing.T) {
-	t.Parallel()
+			pool := elgo.NewPool(
+				elgo.WithPlayerRetry(100*time.Millisecond),
+				elgo.WithGlobalRetry(100*time.Millisecond),
+				elgo.WithIncreaseInterval(0.05))
 
-	pool := elgo.NewPool(elgo.WithGlobalRetry(time.Millisecond), elgo.WithPlayerRetry(time.Millisecond))
+			go pool.Run()
+			for i := 0; i < tc.poolSize; i++ {
+				go pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64()))
+			}
 
-	for i := 0; i < 1000; i++ {
-		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
-	}
+			for i := 0; i < tc.expectedMatches; i++ {
+				acceptMatch(pool, t)
+			}
 
-	go pool.Run()
-
-	for i := 0; i < 500; i++ {
-		acceptMatch(pool, t)
-	}
-
-	queue := pool.Close()
-	if len(queue) != 0 {
-		t.Errorf("test queue should be empty, got: %v", queue)
-	}
-}
-
-func TestPool1001(t *testing.T) {
-	t.Parallel()
-
-	pool := elgo.NewPool(elgo.WithGlobalRetry(time.Millisecond), elgo.WithPlayerRetry(time.Millisecond))
-
-	for i := 0; i < 1001; i++ {
-		_ = pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), 1000))
-	}
-
-	go pool.Run()
-
-	for i := 0; i < 500; i++ {
-		acceptMatch(pool, t)
-	}
-
-	queue := pool.Close()
-	if len(queue) != 1 {
-		t.Errorf("test queue should have length 1, got: %v", queue)
+			got := len(pool.Close())
+			if got != tc.expectedSizeClosed {
+				t.Errorf("pool size on Close() %v, want %v", got, tc.expectedSizeClosed)
+			}
+		})
 	}
 }
 

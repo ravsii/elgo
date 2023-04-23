@@ -31,17 +31,17 @@ type Pool struct {
 
 	matchCh chan Match
 
-	// retryPlayerSearch holds a duration how much time a player should wait
-	// before the next iteration try if no match was found.
-	retryPlayerSearch time.Duration
+	// playerRetryInterval holds a duration of how much time a player
+	// should wait before the next try if no match was found.
+	playerRetryInterval time.Duration
 
-	// retryGlobalSearch holds a duration how much time a pool should wait
-	// if no match was found.
-	retryGlobalSearch time.Duration
+	// globalRetryInterval holds a duration how much time a pool
+	// should wait if not match was found (created).
+	globalRetryInterval time.Duration
 
-	// increaseRatingBorders shows by how many points seaching borders will be
-	// increased when no opponent was found
-	increaseRatingBorders float64
+	// playersBordersIncreaseBy shows by how many points seaching borders
+	// will be increased when no opponent was found
+	playersBordersIncreaseBy float64
 }
 
 // NewPool creates a new pool for players.
@@ -51,9 +51,9 @@ func NewPool(opts ...PoolOpt) *Pool {
 		players: make(map[string]*poolPlayer),
 		matchCh: make(chan Match),
 
-		retryPlayerSearch:     time.Second,
-		retryGlobalSearch:     time.Second,
-		increaseRatingBorders: 100,
+		playerRetryInterval:      time.Second,
+		globalRetryInterval:      time.Second,
+		playersBordersIncreaseBy: 100,
 	}
 
 	for _, option := range opts {
@@ -76,7 +76,7 @@ func (p *Pool) AddPlayer(player Player) error {
 
 	p.players[id] = &poolPlayer{
 		player:        player,
-		ratingBorders: p.increaseRatingBorders,
+		ratingBorders: p.playersBordersIncreaseBy,
 		retryAt:       time.Now(),
 	}
 
@@ -120,7 +120,7 @@ func (p *Pool) Close() map[string]Player {
 //
 //	playersInQueue := pool.Close()
 func (p *Pool) Run() {
-	ticker := time.NewTicker(p.retryPlayerSearch)
+	ticker := time.NewTicker(p.playerRetryInterval)
 
 	for {
 		if !p.iteration() {
@@ -140,9 +140,9 @@ func (p *Pool) iteration() bool {
 	for id1, p1 := range p.players {
 
 		// skipping a player if his retry time is still "on cooldown".
-		// if p1.retryAt.Compare(time.Now()) <= 0 {
-		// 	continue
-		// }
+		if p1.retryAt.Compare(time.Now()) >= 0 {
+			continue
+		}
 
 		for id2, p2 := range p.players {
 			if id1 == id2 {
@@ -156,8 +156,8 @@ func (p *Pool) iteration() bool {
 
 		}
 
-		p1.ratingBorders += p.increaseRatingBorders
-		p1.retryAt = p1.retryAt.Add(p.retryPlayerSearch)
+		p1.ratingBorders += p.playersBordersIncreaseBy
+		p1.retryAt = p1.retryAt.Add(p.playerRetryInterval)
 	}
 
 	return false

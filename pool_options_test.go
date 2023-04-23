@@ -8,41 +8,45 @@ import (
 func TestWithIncreaseIntervals(t *testing.T) {
 	t.Parallel()
 
-	expected := 1000.
+	var (
+		expected = 1000.
+		pool     = NewPool(WithIncreaseInterval(expected))
+	)
 
-	pool := NewPool(WithIncreaseInterval(expected))
-	if pool.increaseRatingBorders != expected {
-		t.Errorf("expected interval %f, got %f", expected, pool.increaseRatingBorders)
+	defer pool.Close()
+	if pool.playersBordersIncreaseBy != expected {
+		t.Errorf("expected interval %f, got %f", expected, pool.playersBordersIncreaseBy)
 
 	}
-
-	_ = pool.Close()
 }
 
 func TestWithPlayerRetry(t *testing.T) {
 	t.Parallel()
 
-	expectedDuration := 3 * time.Hour
+	var (
+		expectedDuration = 3 * time.Hour
+		pool             = NewPool(WithPlayerRetry(expectedDuration))
+	)
 
-	pool := NewPool(WithPlayerRetry(expectedDuration))
-	if pool.retryPlayerSearch != expectedDuration {
-		t.Errorf("expected player retry %d, got %d", expectedDuration, pool.retryPlayerSearch)
+	defer pool.Close()
+	if pool.playerRetryInterval != expectedDuration {
+		t.Errorf("expected player retry %d, got %d", expectedDuration, pool.playerRetryInterval)
 
 	}
-
-	_ = pool.Close()
 }
 
 func TestWithGlobalRetry(t *testing.T) {
 	t.Parallel()
 
-	expectedDuration := 3 * time.Hour
+	var (
+		expectedDuration = 3 * time.Hour
+		pool             = NewPool(WithGlobalRetry(expectedDuration))
+	)
 
-	pool := NewPool(WithGlobalRetry(expectedDuration))
-	if pool.retryPlayerSearch != expectedDuration {
-		t.Errorf("expected global retry %d, got %d", expectedDuration, pool.retryGlobalSearch)
+	defer pool.Close()
+	if pool.playerRetryInterval != expectedDuration {
+		t.Errorf("expected global retry %d, got %d", expectedDuration, pool.globalRetryInterval)
 
 	}
 
-	_ = pool.Close()
 }

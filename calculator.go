@@ -91,5 +91,6 @@ func (c *Calculator) getK(r Ratinger) float64 {
 // probability counts probability of winning of a player against opponent
 // using this formula: https://en.wikipedia.org/wiki/Elo_rating_system#Mathematical_details
 func probability(player, opponent Ratinger) float64 {
+	// note: can't use Pow10 here because Rating() returns float64
 	return 1.0 / (1.0 + math.Pow(10.0, (opponent.Rating()-player.Rating())/400.0))
 }

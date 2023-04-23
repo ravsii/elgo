@@ -8,7 +8,7 @@ type PoolOpt func(*Pool)
 // should try and find a match for them again.
 func WithPlayerRetry(d time.Duration) PoolOpt {
 	return func(p *Pool) {
-		p.retryPlayerSearch = d
+		p.playerRetryInterval = d
 	}
 }
 
@@ -16,7 +16,7 @@ func WithPlayerRetry(d time.Duration) PoolOpt {
 // if no match was found.
 func WithGlobalRetry(d time.Duration) PoolOpt {
 	return func(p *Pool) {
-		p.retryPlayerSearch = d
+		p.playerRetryInterval = d
 	}
 }
 
@@ -24,6 +24,6 @@ func WithGlobalRetry(d time.Duration) PoolOpt {
 // on a new search, if no opponent was found previously
 func WithIncreaseInterval(interval float64) PoolOpt {
 	return func(p *Pool) {
-		p.increaseRatingBorders = interval
+		p.playersBordersIncreaseBy = interval
 	}
 }
