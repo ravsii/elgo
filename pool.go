@@ -163,11 +163,14 @@ func (p *Pool) iteration() bool {
 	return false
 }
 
+// createMatch removes two players from queue and sends them to the match channel.
 func (p *Pool) createMatch(p1, p2 *poolPlayer) {
 	p.removePlayersFromQueue(p1, p2)
 	p.matchCh <- Match{Player1: p1.player, Player2: p2.player}
 }
 
+// removePlayersFromQueue removes players from queue.
+// It's a part of p.iteration(), which already locked the map, so no lock needed.
 func (p *Pool) removePlayersFromQueue(players ...*poolPlayer) {
 	for _, player := range players {
 		delete(p.players, player.player.Identify())
