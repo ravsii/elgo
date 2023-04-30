@@ -97,16 +97,25 @@ func (p *Pool) Size() int {
 }
 
 // Close closes the pool and return players that are still in the queue.
+// It's safe to call Close() multiple times.
 func (p *Pool) Close() map[string]Player {
-	close(p.matchCh)
+	select {
+	case <-p.matchCh:
+		close(p.matchCh)
+	default: // default here is to prevent closed channel from closing
+	}
 
 	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
 	playersLeft := make(map[string]Player, 0)
+	if p.players == nil {
+		return playersLeft
+	}
 	for id, player := range p.players {
 		playersLeft[id] = player.player
 	}
 	p.players = nil
-	p.playersLock.Unlock()
 
 	return playersLeft
 }
@@ -165,8 +174,11 @@ func (p *Pool) iteration() bool {
 
 // createMatch removes two players from queue and sends them to the match channel.
 func (p *Pool) createMatch(p1, p2 *poolPlayer) {
-	p.removePlayersFromQueue(p1, p2)
-	p.matchCh <- Match{Player1: p1.player, Player2: p2.player}
+	select {
+	case p.matchCh <- Match{Player1: p1.player, Player2: p2.player}:
+		p.removePlayersFromQueue(p1, p2)
+	default:
+	}
 }
 
 // removePlayersFromQueue removes players from queue.
