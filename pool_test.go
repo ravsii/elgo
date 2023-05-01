@@ -132,6 +132,20 @@ func TestErrAlreadyExists(t *testing.T) {
 	}
 }
 
+func TestErrPoolClosed(t *testing.T) {
+	t.Parallel()
+
+	var (
+		pool   = elgo.NewPool()
+		player = CreatePlayerMock("mock", 1000)
+	)
+	pool.Close()
+
+	if err := pool.AddPlayer(player); err == nil || !errors.Is(err, elgo.ErrPoolClosed) {
+		t.Errorf("expected error %s, got %s", elgo.ErrPoolClosed, err)
+	}
+}
+
 func TestPlayerRetryInterval(t *testing.T) {
 	t.Parallel()
 
