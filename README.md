@@ -13,4 +13,6 @@ Elgo is a relatively small package that provides a matchmaking pool and a simple
   - [ ] LIFO (Stack)
   - [ ] FIFO (Queue)
   - [ ] Other ...?
-- [ ] Add an option to use this as a service (sockets or something)
+- [ ] Add an option to use this as a service
+  - gRPC (does it even support channel-like streaming data type?)
+  - as a docker container with sockets/grpc
