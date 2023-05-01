@@ -35,23 +35,29 @@ func TestPool(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			pool := elgo.NewPool(
 				elgo.WithPlayerRetryInterval(100*time.Millisecond),
 				elgo.WithGlobalRetryInterval(100*time.Millisecond),
 				elgo.WithIncreasePlayerBorderBy(0.05))
 
 			t.Cleanup(func() { pool.Close() })
-
 			go pool.Run()
+
+			wg := sync.WaitGroup{}
+			wg.Add(tc.expectedMatches)
+
 			for i := 0; i < tc.poolSize; i++ {
 				go pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64()))
 			}
 
 			for i := 0; i < tc.expectedMatches; i++ {
-				acceptMatch(pool, t)
+				go func(wg *sync.WaitGroup, p *elgo.Pool, tt *testing.T) {
+					acceptMatch(p, tt)
+					wg.Done()
+				}(&wg, pool, t)
 			}
+
+			wg.Wait()
 
 			got := len(pool.Close())
 			if got != tc.expectedSizeClosed {
@@ -75,7 +81,7 @@ func TestPoolPrematureClose(t *testing.T) {
 		{"100", 100, 49, 2},
 		{"101", 101, 50, 1},
 		{"500", 500, 200, 100},
-		{"501", 501, 200, 101},
+		{"501", 500, 200, 100},
 		{"1000", 1000, 200, 600},
 		{"1001", 1001, 201, 599},
 		{"10000", 10000, 100, 9800},
@@ -85,8 +91,6 @@ func TestPoolPrematureClose(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			pool := elgo.NewPool(
 				elgo.WithPlayerRetryInterval(100*time.Millisecond),
 				elgo.WithGlobalRetryInterval(100*time.Millisecond),

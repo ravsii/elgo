@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrAlreadyExists = errors.New("player already exists")
+	ErrPoolClosed    = errors.New("pool is closed")
 )
 
 type poolPlayer struct {
@@ -28,8 +29,7 @@ type Match struct {
 type Pool struct {
 	players     map[string]*poolPlayer
 	playersLock sync.RWMutex
-
-	matchCh chan Match
+	matchCh     chan Match
 
 	// playerRetryInterval holds a duration of how much time a player
 	// should wait before the next try if no match was found.
@@ -46,6 +46,7 @@ type Pool struct {
 
 // NewPool creates a new pool for players.
 // Pools aren't connected to each other so creating multiple of them is safe.
+// To close a pool use pool.Close()
 func NewPool(opts ...PoolOpt) *Pool {
 	p := &Pool{
 		players: make(map[string]*poolPlayer),
@@ -65,9 +66,16 @@ func NewPool(opts ...PoolOpt) *Pool {
 
 // AddPlayer returns a queue channel to send new players to.
 // ErrAlreadyExists is returned if identifier is already taken.
+// ErrPoolClosed is returned if the pool is closed.
 func (p *Pool) AddPlayer(player Player) error {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
+
+	select {
+	case <-p.matchCh:
+		return ErrPoolClosed
+	default:
+	}
 
 	id := player.Identify()
 	if _, ok := p.players[id]; ok {
@@ -97,21 +105,19 @@ func (p *Pool) Size() int {
 }
 
 // Close closes the pool and return players that are still in the queue.
-// It's safe to call Close() multiple times.
+// It's safe to call Close() multiple times, but in that case nil will be returned.
 func (p *Pool) Close() map[string]Player {
-	select {
-	case <-p.matchCh:
-		close(p.matchCh)
-	default: // default here is to prevent closed channel from closing
-	}
-
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
 
-	playersLeft := make(map[string]Player, 0)
-	if p.players == nil {
-		return playersLeft
+	select {
+	case <-p.matchCh:
+		return nil
+	default:
+		close(p.matchCh)
 	}
+
+	playersLeft := make(map[string]Player, 0)
 	for id, player := range p.players {
 		playersLeft[id] = player.player
 	}
@@ -132,8 +138,13 @@ func (p *Pool) Run() {
 	ticker := time.NewTicker(p.playerRetryInterval)
 
 	for {
-		if !p.iteration() {
-			<-ticker.C
+		select {
+		case <-p.matchCh:
+			return
+		default:
+			if !p.iteration() {
+				<-ticker.C
+			}
 		}
 	}
 }
