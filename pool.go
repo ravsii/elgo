@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrAlreadyExists = errors.New("player already exists")
+	ErrPoolClosed    = errors.New("pool is closed")
 )
 
 type poolPlayer struct {
@@ -28,8 +29,7 @@ type Match struct {
 type Pool struct {
 	players     map[string]*poolPlayer
 	playersLock sync.RWMutex
-
-	matchCh chan Match
+	matchCh     chan Match
 
 	// playerRetryInterval holds a duration of how much time a player
 	// should wait before the next try if no match was found.
@@ -46,6 +46,7 @@ type Pool struct {
 
 // NewPool creates a new pool for players.
 // Pools aren't connected to each other so creating multiple of them is safe.
+// To close a pool use pool.Close()
 func NewPool(opts ...PoolOpt) *Pool {
 	p := &Pool{
 		players: make(map[string]*poolPlayer),
@@ -65,9 +66,16 @@ func NewPool(opts ...PoolOpt) *Pool {
 
 // AddPlayer returns a queue channel to send new players to.
 // ErrAlreadyExists is returned if identifier is already taken.
+// ErrPoolClosed is returned if the pool is closed.
 func (p *Pool) AddPlayer(player Player) error {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
+
+	select {
+	case <-p.matchCh:
+		return ErrPoolClosed
+	default:
+	}
 
 	id := player.Identify()
 	if _, ok := p.players[id]; ok {
@@ -97,16 +105,23 @@ func (p *Pool) Size() int {
 }
 
 // Close closes the pool and return players that are still in the queue.
+// It's safe to call Close() multiple times, but in that case nil will be returned.
 func (p *Pool) Close() map[string]Player {
-	close(p.matchCh)
-
 	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
+	select {
+	case <-p.matchCh:
+		return nil
+	default:
+		close(p.matchCh)
+	}
+
 	playersLeft := make(map[string]Player, 0)
 	for id, player := range p.players {
 		playersLeft[id] = player.player
 	}
 	p.players = nil
-	p.playersLock.Unlock()
 
 	return playersLeft
 }
@@ -123,8 +138,13 @@ func (p *Pool) Run() {
 	ticker := time.NewTicker(p.playerRetryInterval)
 
 	for {
-		if !p.iteration() {
-			<-ticker.C
+		select {
+		case <-p.matchCh:
+			return
+		default:
+			if !p.iteration() {
+				<-ticker.C
+			}
 		}
 	}
 }
@@ -163,11 +183,17 @@ func (p *Pool) iteration() bool {
 	return false
 }
 
+// createMatch removes two players from queue and sends them to the match channel.
 func (p *Pool) createMatch(p1, p2 *poolPlayer) {
-	p.removePlayersFromQueue(p1, p2)
-	p.matchCh <- Match{Player1: p1.player, Player2: p2.player}
+	select {
+	case p.matchCh <- Match{Player1: p1.player, Player2: p2.player}:
+		p.removePlayersFromQueue(p1, p2)
+	default:
+	}
 }
 
+// removePlayersFromQueue removes players from queue.
+// It's a part of p.iteration(), which already locked the map, so no lock needed.
 func (p *Pool) removePlayersFromQueue(players ...*poolPlayer) {
 	for _, player := range players {
 		delete(p.players, player.player.Identify())
