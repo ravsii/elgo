@@ -22,3 +22,7 @@ func (p *Player) SetRating(rating float64) {
 func (p *Player) String() string {
 	return fmt.Sprintf("%s (%.2f)", p.Name, p.EloRating)
 }
+
+func New(name string, rating float64) *Player {
+	return &Player{name, rating}
+}

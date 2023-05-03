@@ -5,14 +5,14 @@ import (
 	"math/rand"
 
 	"github.com/ravsii/elgo"
-	"github.com/ravsii/elgo/examples/queue/player"
+	"github.com/ravsii/elgo/examples/player"
 )
 
 func main() {
 	pool := elgo.NewPool(elgo.WithIncreasePlayerBorderBy(0.03))
 
 	for i := 0; i < 1000; i++ {
-		pool.AddPlayer(&player.Player{Name: fmt.Sprint(i), EloRating: rand.Float64()})
+		pool.AddPlayer(player.New(fmt.Sprint(i), rand.Float64()))
 	}
 
 	fmt.Println("pool size", pool.Size())
