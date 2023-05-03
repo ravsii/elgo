@@ -1,0 +1,18 @@
+Player1 -> Pool.Players
+Player2 -> Pool.Players
+PlayerN -> Pool.Players
+Player2Err: Player2
+Player2Err -> Pool.Players: "err: player already in the pool"
+
+Pool: {
+  Players -> PoolIteration.Take a random player (p1)
+  PoolIteration: {
+    Take a random player (p1) -> Take a random player (p1): check\nplayer's\nretry\ninterval
+    Take a random player (p1) -> Take another random player (p2)
+    Take another random player (p2) -> Create match: Could be matched?
+    Take another random player (p2) -> Increase playersBordersIncreaseBy for p1: Can't be matched
+    Increase playersBordersIncreaseBy for p1 -> Update playerRetryInterval for p1 -> Take a random player (p1)
+    Create Match -> Remove both players from queue
+  }
+  PoolIteration.Remove both players from queue -> Wait globalRetryInterval -> PoolIteration.Take a random player (p1)
+}
