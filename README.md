@@ -4,6 +4,10 @@
 
 Elgo is a relatively small package that provides a matchmaking pool and a simple calculator for ELO-like rating with configurable `K`-factor.
 
+## Why?
+
+The main idea is to implement some sort of a basic matchmaking tool for 3rd party apps to use. There are plans to release it as a CLI, a Docker container and provide a server API for developers to use it as a package.
+
 ## How it works?
 
 ![](./docs/d2/pool.svg)
