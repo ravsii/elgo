@@ -10,6 +10,8 @@ The main idea is to implement some sort of a basic matchmaking tool for 3rd part
 
 ## How it works?
 
+TLDR version:
+
 ![](./docs/d2/pool.svg)
 
 ## TODO list
