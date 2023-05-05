@@ -1,8 +1,8 @@
 package socket
 
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
@@ -34,14 +34,19 @@ func Listen(port int, pool *elgo.Pool) (err error) {
 func handle(conn net.Conn, p *elgo.Pool) {
 	defer conn.Close()
 
+	reader := bufio.NewReaderSize(conn, 1024)
+	writer := bufio.NewWriterSize(conn, 1024)
+
 	for done := false; !done; {
-		b, err := io.ReadAll(conn)
+		input, err := reader.ReadString('\n')
 		if err != nil {
 			log.Println("read all: ", err)
 			return
 		}
 
-		event, _ := parseEvent(string(b))
+		log.Println("received", input)
+
+		event, _ := parseEvent(input)
 		switch event {
 		case "ADD":
 
@@ -51,13 +56,12 @@ func handle(conn net.Conn, p *elgo.Pool) {
 
 		case "SIZE":
 			size := p.Size()
-			conn.Write(createEvent(Size, size))
+			writer.Write(createEvent(Size, size))
+			writer.Flush()
+			fmt.Print(1)
 
-			// default:
-			// 	continue
+		default:
+			conn.Write([]byte("test"))
 		}
-
-		conn.Close()
 	}
-
 }

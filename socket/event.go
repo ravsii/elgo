@@ -38,7 +38,7 @@ func parseEvent(s string) (Event, string) {
 	case "SIZE":
 		return Size, ""
 	default:
-		return Unknown, split[1]
+		return Unknown, s
 	}
 }
 
@@ -48,6 +48,7 @@ func createEvent(e Event, args ...any) []byte {
 	for _, arg := range args {
 		buf.WriteString(fmt.Sprint(arg))
 	}
+	buf.WriteByte('\n')
 
 	return buf.Bytes()
 }
