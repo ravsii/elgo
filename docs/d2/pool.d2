@@ -1,18 +1,33 @@
 Player1 -> Pool.Players
 Player2 -> Pool.Players
 PlayerN -> Pool.Players
+
 Player2Err: Player2
 Player2Err -> Pool.Players: "err: player already in the pool"
 
-Pool: {
-  Players -> Pool Iteration.Take a random player (p1)
-  Pool Iteration: {
-    Take a random player (p1) -> Take a random player (p1): check\nplayer's\nretry\ninterval
-    Take a random player (p1) -> Take another random player (p2)
-    Take another random player (p2) -> Create match: Could be matched?
-    Take another random player (p2) -> Increase playersBordersIncreaseBy for p1: Can't be matched
-    Increase playersBordersIncreaseBy for p1 -> Update playerRetryInterval for p1 -> Take a random player (p1)
-    Create Match -> Remove both players from queue
-  }
-  Pool Iteration.Remove both players from queue -> Wait globalRetryInterval -> Pool Iteration.Take a random player (p1)
+Pool.Players -> Pool.Pool Iteration.p1
+
+Pool.Pool Iteration.p1 -> Pool.Pool Iteration.p1: check\nplayer's\nretry\ninterval
+Pool.Pool Iteration.p1 -> Pool.Pool Iteration.p2
+
+Pool.Pool Iteration.p1: {
+  label: Take a random player (p1)
 }
+
+Pool.Pool Iteration.p2: {
+  label: Take a random player (p2)
+}
+
+Pool.Pool Iteration.p2 -> Pool.Pool Iteration.can_match: Can be matched?
+Pool.Pool Iteration.p2 -> Pool.Pool Iteration.cant_match: Can't be matched
+Pool.Pool Iteration.cant_match -> Pool.Pool Iteration.p1
+
+Pool.Pool Iteration.can_match: {
+  label: "Create match\nRemove both players from queue"
+}
+
+Pool.Pool Iteration.cant_match: {
+  label: "Increase playersBordersIncreaseBy for p1\nUpdate playerRetryInterval for p1 "
+}
+
+Pool.Pool Iteration.can_match -> Pool.Wait globalRetryInterval -> Pool.Pool Iteration.p1

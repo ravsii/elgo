@@ -6,6 +6,8 @@ Elgo is a relatively small package that provides a matchmaking pool and a simple
 
 ## How it works?
 
+TLDR version:
+
 ![](./docs/d2/pool.svg)
 
 ## TODO list
