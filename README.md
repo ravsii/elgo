@@ -1,6 +1,6 @@
 # Elgo - Elo matchmaking module in Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/ravsii/elgo.svg)](https://pkg.go.dev/github.com/ravsii/elgo) [![codecov](https://codecov.io/gh/ravsii/elgo/branch/main/graph/badge.svg?token=K3EM8Z6C7B)](https://codecov.io/gh/ravsii/elgo) [![Go Report Card](https://goreportcard.com/badge/github.com/ravsii/elgo)](https://goreportcard.com/report/github.com/ravsii/elgo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ravsii/elgo.svg)](https://pkg.go.dev/github.com/ravsii/elgo) [![codecov](https://codecov.io/gh/ravsii/elgo/branch/main/graph/badge.svg?token=K3EM8Z6C7B)](https://codecov.io/gh/ravsii/elgo) [![Go Report Card](https://goreportcard.com/badge/github.com/ravsii/elgo)](https://goreportcard.com/report/github.com/ravsii/elgo) ![Workflow Status](https://github.com/ravsii/elgo/actions/workflows/ci.yml/badge.svg)
 
 Elgo is a relatively small package that provides a matchmaking pool and a simple calculator for ELO-like rating with configurable `K`-factor.
 
