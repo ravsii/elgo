@@ -18,3 +18,14 @@ linters:
     - gomnd
     - wsl
     - nlreturn
+    - nosnakecase
+    - interfacer
+    - ifshort
+    - varcheck
+    - exhaustivestruct
+    - scopelint
+    - structcheck
+    - maligned
+    - deadcode
+    - golint
+    - structcheck
