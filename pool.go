@@ -137,7 +137,7 @@ func (p *Pool) Close() map[string]Player {
 //
 //	playersInQueue := pool.Close()
 func (p *Pool) Run() {
-	ticker := time.NewTicker(p.playerRetryInterval)
+	ticker := time.NewTicker(p.globalRetryInterval)
 
 	for {
 		select {
