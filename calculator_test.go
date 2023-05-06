@@ -43,7 +43,8 @@ func TestWin(t *testing.T) {
 	}{
 		{"base 0, empty", 0, nil, 1000, 2000, 1000, 2000},
 		{"base 30, empty", 30, nil, 1200, 1000, 1208, 993},
-		{"base 0, 1000-20, 2000-40", 0,
+		{
+			"base 0, 1000-20, 2000-40", 0,
 			[]elgo.CalcOpt{
 				elgo.WithKFactor(1000, 20),
 				elgo.WithKFactor(2000, 40),
@@ -70,7 +71,6 @@ func TestWin(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestDrawP1Nil(t *testing.T) {
@@ -109,7 +109,8 @@ func TestDraw(t *testing.T) {
 	}{
 		{"base 0, empty", 0, nil, 1000, 2000, 1000, 2000},
 		{"base 40, empty", 40, nil, 2000, 1000, 1981, 1020},
-		{"base 0, 1000-1, 2000-40", 0,
+		{
+			"base 0, 1000-1, 2000-40", 0,
 			[]elgo.CalcOpt{
 				elgo.WithKFactor(1000, 1),
 				elgo.WithKFactor(2000, 40),

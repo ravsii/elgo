@@ -46,7 +46,7 @@ type Pool struct {
 
 // NewPool creates a new pool for players.
 // Pools aren't connected to each other so creating multiple of them is safe.
-// To close a pool use pool.Close()
+// To close a pool use pool.Close().
 func NewPool(opts ...PoolOpt) *Pool {
 	p := &Pool{
 		players: make(map[string]*poolPlayer),
@@ -160,7 +160,6 @@ func (p *Pool) iteration() bool {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
 	for id1, p1 := range p.players {
-
 		// skipping a player if his retry time is still "on cooldown".
 		if p1.retryAt.Compare(time.Now()) >= 0 {
 			continue
@@ -175,7 +174,6 @@ func (p *Pool) iteration() bool {
 				p.createMatch(p1, p2)
 				return true
 			}
-
 		}
 
 		p1.ratingBorders += p.playersBordersIncreaseBy
