@@ -84,7 +84,5 @@ jobs:
         with:
           go-version: 1.20
       - uses: go-semantic-release/action@v1
-        with:
-          hooks: goreleaser
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
