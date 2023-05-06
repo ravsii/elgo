@@ -34,7 +34,9 @@ func TestPool(t *testing.T) {
 
 	for _, tc := range testCases {
 		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			pool := elgo.NewPool(
 				elgo.WithPlayerRetryInterval(100*time.Millisecond),
 				elgo.WithGlobalRetryInterval(100*time.Millisecond),
@@ -47,14 +49,18 @@ func TestPool(t *testing.T) {
 			wg.Add(tc.expectedMatches)
 
 			for i := 0; i < tc.poolSize; i++ {
-				go pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64()))
+				err := pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64())) //nolint
+				if err != nil {
+					t.Errorf("pool add player: %v", err)
+				}
 			}
 
 			for i := 0; i < tc.expectedMatches; i++ {
-				go func(wg *sync.WaitGroup, p *elgo.Pool, tt *testing.T) {
-					acceptMatch(p, tt)
+				go func(t *testing.T, wg *sync.WaitGroup, pool *elgo.Pool) {
+					t.Helper()
+					acceptMatch(t, pool)
 					wg.Done()
-				}(&wg, pool, t)
+				}(t, &wg, pool)
 			}
 
 			wg.Wait()
@@ -91,6 +97,8 @@ func TestPoolPrematureClose(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			pool := elgo.NewPool(
 				elgo.WithPlayerRetryInterval(100*time.Millisecond),
 				elgo.WithGlobalRetryInterval(100*time.Millisecond),
@@ -100,11 +108,11 @@ func TestPoolPrematureClose(t *testing.T) {
 
 			go pool.Run()
 			for i := 0; i < testCase.poolSize; i++ {
-				go pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64()))
+				go pool.AddPlayer(CreatePlayerMock(fmt.Sprint(i), rand.Float64())) //nolint
 			}
 
 			for i := 0; i < testCase.closeAfterMatches; i++ {
-				acceptMatch(pool, t)
+				acceptMatch(t, pool)
 			}
 
 			got := len(pool.Close())
@@ -157,8 +165,13 @@ func TestPlayerRetryInterval(t *testing.T) {
 
 	t.Cleanup(func() { pool.Close() })
 
-	pool.AddPlayer(CreatePlayerMock("1", 100))
-	pool.AddPlayer(CreatePlayerMock("2", 1000))
+	if err := pool.AddPlayer(CreatePlayerMock("1", 100)); err != nil {
+		t.Errorf("pool add player: %s", err)
+	}
+
+	if err := pool.AddPlayer(CreatePlayerMock("2", 1000)); err != nil {
+		t.Errorf("pool add player: %s", err)
+	}
 
 	go pool.Run()
 
@@ -188,8 +201,13 @@ func TestGlobalRetryInterval(t *testing.T) {
 
 	t.Cleanup(func() { pool.Close() })
 
-	pool.AddPlayer(CreatePlayerMock("1", 100))
-	pool.AddPlayer(CreatePlayerMock("2", 1000))
+	if err := pool.AddPlayer(CreatePlayerMock("1", 100)); err != nil {
+		t.Errorf("pool add player: %s", err)
+	}
+
+	if err := pool.AddPlayer(CreatePlayerMock("2", 1000)); err != nil {
+		t.Errorf("pool add player: %s", err)
+	}
 
 	go pool.Run()
 
@@ -209,7 +227,9 @@ func TestGlobalRetryInterval(t *testing.T) {
 }
 
 // acceptMatch tries to read from match channel, throws error otherwise.
-func acceptMatch(pool *elgo.Pool, t *testing.T) {
+func acceptMatch(t *testing.T, pool *elgo.Pool) {
+	t.Helper()
+
 	if _, ok := <-pool.Matches(); !ok {
 		t.Error("channel is closed, but it shouldn't be")
 	}
