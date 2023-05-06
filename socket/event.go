@@ -2,7 +2,11 @@ package socket
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
+	"net"
+	"strconv"
 	"strings"
 )
 
@@ -26,29 +30,60 @@ const (
 //	SIZE
 //
 // If no known event type was found, Unknown is returned.
-func parseEvent(s string) (Event, string) {
-	split := strings.SplitN(strings.TrimSpace(s), " ", 1)
+func parseEvent(c net.Conn) (Event, string, error) {
+	buf := make([]byte, 0, 1024)
+	tmp := make([]byte, 0, 1024)
+
+	for {
+		n, err := c.Read(tmp)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return Unknown, "", err
+		}
+
+		buf = append(buf, tmp[:n]...)
+	}
+
+	s := strings.TrimSpace(string(buf))
+	split := strings.SplitN(s, " ", 1)
 	switch split[0] {
 	case "ADD":
-		return Add, split[1]
+		return Add, s[3:], nil
 	case "MATCH":
-		return Match, split[1]
+		return Match, s[5:], nil
 	case "REMOVE":
-		return Remove, split[1]
+		return Remove, s[6:], nil
 	case "SIZE":
-		return Size, ""
+		return Size, s[4:], nil
 	default:
-		return Unknown, s
+		return Unknown, s, nil
 	}
 }
 
-func createEvent(e Event, args ...any) []byte {
+func writeEvent(w net.Conn, e Event, args ...any) error {
 	buf := bytes.Buffer{}
 	buf.WriteString(string(e))
-	for _, arg := range args {
+	for i, arg := range args {
+		if i == 0 {
+			buf.WriteByte(' ')
+		}
+
 		buf.WriteString(fmt.Sprint(arg))
 	}
-	buf.WriteByte('\n')
 
-	return buf.Bytes()
+	_, err := w.Write(buf.Bytes())
+	return err
+}
+
+func parseSize(s string) (int, error) {
+	s = strings.TrimSpace(s)
+	size, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse size: %w", err)
+	}
+
+	return int(size), nil
 }
