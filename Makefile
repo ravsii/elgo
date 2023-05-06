@@ -3,3 +3,6 @@ test:
 
 coverage:
 	go test ./... -cover -timeout 1m --count 1 --race
+
+lint:
+	golangci-lint run ./... --out-format colored-line-number --config ./.golangci.yml --fix
