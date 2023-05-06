@@ -16,3 +16,5 @@ linters:
     - funlen
     - dupl
     - gomnd
+    - wsl
+    - nlreturn
