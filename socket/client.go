@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
 
 	"github.com/ravsii/elgo"
 )
@@ -66,16 +65,13 @@ func (c *Client) Size() (int, error) {
 		return 0, fmt.Errorf("unable to write: %w", err)
 	}
 
-	select {
-	case result := <-c.sizeCh:
-		if result.err != nil {
-			return 0, result.err
-		}
-
-		return result.size, nil
-	case <-time.After(10 * time.Second):
-		return 0, nil
+	result := <-c.sizeCh
+	if result.err != nil {
+		return 0, result.err
 	}
+
+	return result.size, nil
+
 }
 
 // Close closes c.conn and matches channel
