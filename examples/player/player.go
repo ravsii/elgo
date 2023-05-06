@@ -1,6 +1,12 @@
 package player
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ravsii/elgo"
+)
+
+var compileTest elgo.Player = (*Player)(nil)
 
 type Player struct {
 	Name      string
@@ -18,6 +24,8 @@ func (p *Player) Rating() float64 {
 func (p *Player) SetRating(rating float64) {
 	p.EloRating = rating
 }
+
+// Functions below are for other examples, they aren't mandatory
 
 func (p *Player) String() string {
 	return fmt.Sprintf("%s (%.2f)", p.Name, p.EloRating)
