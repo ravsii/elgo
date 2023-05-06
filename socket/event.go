@@ -36,17 +36,17 @@ func parseEvent(c net.Conn) (Event, string, error) {
 		return Unknown, "", err
 	}
 
-	s = strings.TrimSpace(s)
-	split := strings.SplitN(s, " ", 1)
-	switch split[0] {
+	s = strings.Trim(s, " \n")
+	eventStr, args, _ := strings.Cut(s, " ")
+	switch eventStr {
 	case "ADD":
-		return Add, s[3:], nil
+		return Add, args, nil
 	case "MATCH":
-		return Match, s[5:], nil
+		return Match, args, nil
 	case "REMOVE":
-		return Remove, s[6:], nil
+		return Remove, args, nil
 	case "SIZE":
-		return Size, s[4:], nil
+		return Size, args, nil
 	default:
 		return Unknown, s, nil
 	}
