@@ -55,27 +55,29 @@ func NewCalc(k float64, opts ...CalcOpt) *Calculator {
 }
 
 // Win calculates rating for winner and loser.
-func (c *Calculator) Win(winner, loser Ratinger) (newWinnerRating, newLoserRating float64) {
+// The order of players in returned values is the same.
+func (c *Calculator) Win(winner, loser Ratinger) (float64, float64) {
 	if winner == nil || loser == nil {
 		return 0, 0
 	}
 
-	newWinnerRating = winner.Rating() + c.getK(winner)*(1-probability(winner, loser))
-	newLoserRating = loser.Rating() + c.getK(loser)*(-probability(loser, winner))
+	winnerNew := winner.Rating() + c.getK(winner)*(1-probability(winner, loser))
+	loserNew := loser.Rating() + c.getK(loser)*(-probability(loser, winner))
 
-	return newWinnerRating, newLoserRating
+	return winnerNew, loserNew
 }
 
 // Draw calculates rating for both players using a 0.5 co-efficient.
-func (c *Calculator) Draw(p1, p2 Ratinger) (newP1Rating, newP2Rating float64) {
+// The order of players in returned values is the same.
+func (c *Calculator) Draw(p1, p2 Ratinger) (float64, float64) {
 	if p1 == nil || p2 == nil {
 		return 0, 0
 	}
 
-	newP1Rating = p1.Rating() + c.getK(p1)*(0.5-probability(p1, p2))
-	newP2Rating = p2.Rating() + c.getK(p2)*(0.5-probability(p2, p1))
+	p1New := p1.Rating() + c.getK(p1)*(0.5-probability(p1, p2))
+	p2New := p2.Rating() + c.getK(p2)*(0.5-probability(p2, p1))
 
-	return newP1Rating, newP2Rating
+	return p1New, p2New
 }
 
 func (c *Calculator) getK(r Ratinger) float64 {
