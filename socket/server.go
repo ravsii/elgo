@@ -9,12 +9,28 @@ import (
 	"github.com/ravsii/elgo"
 )
 
-// Listen creates a new server on a port using a pool and listens for connections.
-// Listen is a blocking function.
+type Server struct {
+	addr string
+	pool *elgo.Pool
+}
+
+// NewServer creates a server. Use
+//
+//	server.Listen()
+//
+// to run it.
+func NewServer(listenAddr string, pool *elgo.Pool) *Server {
+	return &Server{
+		addr: listenAddr,
+		pool: pool,
+	}
+}
+
+// Listen starts listening for connections. It is a blocking function.
 //
 // Returned error is always a non-nil error.
-func Listen(port int, pool *elgo.Pool) (err error) {
-	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func (s *Server) Listen() (err error) {
+	listen, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return fmt.Errorf("net listen: %w", err)
 	}
@@ -27,11 +43,11 @@ func Listen(port int, pool *elgo.Pool) (err error) {
 			return fmt.Errorf("accept connection: %w", err)
 		}
 
-		go handle(conn, pool)
+		go s.handle(conn)
 	}
 }
 
-func handle(conn net.Conn, p *elgo.Pool) {
+func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReaderSize(conn, 1024)
@@ -55,7 +71,7 @@ func handle(conn net.Conn, p *elgo.Pool) {
 		case "REMOVE":
 
 		case "SIZE":
-			size := p.Size()
+			size := s.pool.Size()
 			writer.Write(createEvent(Size, size))
 			writer.Flush()
 			fmt.Print(1)
