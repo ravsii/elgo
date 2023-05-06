@@ -36,6 +36,18 @@ func main() {
 		log.Fatal("unable to connect to server:", err)
 	}
 
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			size, err := client.Size()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println("client: size", size)
+		}
+	}()
+
 	for i := 0; i < 100; i++ {
 		p := player.New(fmt.Sprint(i), rand.Float64())
 		fmt.Println("client: adding new player", p)
