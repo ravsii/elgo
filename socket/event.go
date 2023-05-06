@@ -11,14 +11,24 @@ import (
 type Event string
 
 const (
-	Add     Event = "ADD"
-	Match   Event = "MATCH"
-	Remove  Event = "REMOVE"
-	Size    Event = "SIZE"
+	// Add is a server-only event that adds a player to the pool
+	Add Event = "ADD"
+	// Match is a client-only event if a match was created.
+	Match Event = "MATCH"
+	// Remove is a server-only event if a certain players leaves the pool.
+	Remove Event = "REMOVE"
+	// Size is a double-size event:
+	//	- When sent from the client to the server, it will ask for
+	//	the current amount of players in queue.
+	//	It should be sent without arguments (SIZE)
+	// - When sent from the server to the client, it returns the current of
+	//	players in queue (SIZE 10)
+	Size Event = "SIZE"
+	// Unknown event is returned if no other event prefix was detected.
 	Unknown Event = ""
 )
 
-const Delimiter = '\n'
+const Delimiter = "\r\n"
 
 // parseEvent accepts a string event and parses it, returning Event type and
 // the rest of the string.
@@ -31,13 +41,16 @@ const Delimiter = '\n'
 //
 // If no known event type was found, Unknown is returned.
 func parseEvent(c net.Conn) (Event, string, error) {
-	s, err := bufio.NewReader(c).ReadString(Delimiter)
+	buf := make([]byte, 1024)
+	n, err := c.Read(buf)
 	if err != nil {
 		return Unknown, "", err
 	}
 
-	s = strings.Trim(s, " \n")
+	s := string(buf[:n])
+	s = strings.Trim(s, " \n\r")
 	eventStr, args, _ := strings.Cut(s, " ")
+
 	switch eventStr {
 	case "ADD":
 		return Add, args, nil
@@ -63,24 +76,25 @@ func writeEvent(w net.Conn, event Event, args ...any) error {
 		return fmt.Errorf("unable to write to net.Conn: %w", err)
 	}
 
-	strs := make([]string, 0, len(args))
+	if len(args) > 0 {
+		strs := make([]string, 0, len(args))
+		for _, arg := range args {
+			s, ok := arg.(string)
+			if !ok {
+				return fmt.Errorf("unable to convert %v to string", arg)
+			}
 
-	for _, arg := range args {
-		s, ok := arg.(string)
-		if !ok {
-			return fmt.Errorf("unable to convert %v to string", arg)
+			strs = append(strs, s)
 		}
 
-		strs = append(strs, s)
+		if _, err := writer.WriteString(strings.Join(strs, " ")); err != nil {
+			return fmt.Errorf("unable to write to net.Conn: %w", err)
+		}
 	}
 
-	if _, err := writer.WriteString(strings.Join(strs, " ")); err != nil {
-		return fmt.Errorf("unable to write to net.Conn: %w", err)
-	}
-
-	if err := writer.WriteByte(Delimiter); err != nil {
-		return fmt.Errorf("unable to write to net.Conn: %w", err)
-	}
+	// if err := writer.WriteByte(Delimiter); err != nil {
+	// 	return fmt.Errorf("unable to write to net.Conn: %w", err)
+	// }
 
 	if err := writer.Flush(); err != nil {
 		return fmt.Errorf("unable to write to net.Conn: %w", err)
