@@ -29,3 +29,6 @@ linters:
     - deadcode
     - golint
     - structcheck
+    - varnamelen
+    - exhaustruct
+    - revive
