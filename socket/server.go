@@ -75,12 +75,16 @@ func (s *Server) handleEvent(conn net.Conn, event Event, args string) {
 			return
 		}
 
-		s.pool.AddPlayer(players...)
+		if err := s.pool.AddPlayer(players...); err != nil {
+			log.Println("pool add:", err)
+		}
 	case Remove:
 
 	case Size:
 		size := s.pool.Size()
-		writeEvent(conn, Size, size)
+		if err := writeEvent(conn, Size, size); err != nil {
+			log.Println("size write:", err)
+		}
 	default:
 		log.Println("Unknown event:", event, args)
 	}

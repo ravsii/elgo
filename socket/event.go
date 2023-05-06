@@ -3,6 +3,7 @@ package socket
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -41,15 +42,16 @@ const Delimiter = "\r\n"
 //
 // If no known event type was found, Unknown is returned.
 func parseEvent(c net.Conn) (Event, string, error) {
-	buf := make([]byte, 1024)
-	n, err := c.Read(buf)
+	// var buf bytes.Buffer
+	// io.Copy(&buf, c)
+	s, err := bufio.NewReader(c).ReadString('\n')
 	if err != nil {
 		return Unknown, "", err
 	}
 
-	s := string(buf[:n])
 	s = strings.Trim(s, " \n\r")
 	eventStr, args, _ := strings.Cut(s, " ")
+	log.Println("read", eventStr, args)
 
 	switch eventStr {
 	case "ADD":
@@ -66,39 +68,27 @@ func parseEvent(c net.Conn) (Event, string, error) {
 }
 
 func writeEvent(w net.Conn, event Event, args ...any) error {
-	writer := bufio.NewWriter(w)
-
-	if _, err := writer.WriteString(string(event)); err != nil {
-		return fmt.Errorf("unable to write to net.Conn: %w", err)
-	}
-
-	if err := writer.WriteByte(' '); err != nil {
-		return fmt.Errorf("unable to write to net.Conn: %w", err)
-	}
+	buf := append([]byte(event), ' ')
 
 	if len(args) > 0 {
 		strs := make([]string, 0, len(args))
 		for _, arg := range args {
-			s, ok := arg.(string)
-			if !ok {
-				return fmt.Errorf("unable to convert %v to string", arg)
-			}
-
-			strs = append(strs, s)
+			strs = append(strs, fmt.Sprint(arg))
 		}
 
-		if _, err := writer.WriteString(strings.Join(strs, " ")); err != nil {
-			return fmt.Errorf("unable to write to net.Conn: %w", err)
-		}
+		str := strings.Join(strs, " ")
+		buf = append(buf, []byte(str)...)
 	}
 
-	// if err := writer.WriteByte(Delimiter); err != nil {
-	// 	return fmt.Errorf("unable to write to net.Conn: %w", err)
-	// }
+	buf = append(buf, []byte("\r\n")...)
 
-	if err := writer.Flush(); err != nil {
+	n, err := w.Write(buf)
+	if err != nil {
 		return fmt.Errorf("unable to write to net.Conn: %w", err)
 	}
+
+	// -2 to remove \r\n
+	log.Println("write", len(buf), n, string(buf[:len(buf)-2]))
 
 	return nil
 }

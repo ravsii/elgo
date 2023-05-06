@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/ravsii/elgo"
@@ -20,16 +19,15 @@ func main() {
 
 	server := socket.NewServer(":3000", pool)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	g := make(chan bool)
 
 	go func() {
 		log.Println("Server started")
-		wg.Done()
+		g <- true
 		log.Fatal(server.Listen())
 	}()
 
-	wg.Wait()
+	<-g
 
 	client, err := socket.NewClient(":3000")
 	if err != nil {
@@ -38,7 +36,7 @@ func main() {
 
 	go func() {
 		for {
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(time.Second)
 			size, err := client.Size()
 			if err != nil {
 				log.Fatal(err)
@@ -48,19 +46,15 @@ func main() {
 		}
 	}()
 
-	go func() {
-		for i := 0; i < 100; i++ {
-			p := player.New(fmt.Sprint(i), rand.Float64())
-			fmt.Println("client: adding new player", p)
-			err := client.Add(p)
-			if err != nil {
-				log.Fatal("client: add", err)
-			}
-
-			time.Sleep(time.Second)
+	for i := 0; i < 10; i++ {
+		p := player.New(fmt.Sprint(i), rand.Float64())
+		err := client.Add(p)
+		if err != nil {
+			log.Fatal("client: add", err)
 		}
-	}()
 
-	wg.Add(1)
-	wg.Wait()
+		// time.Sleep(time.Second)
+	}
+
+	time.Sleep(2 * time.Second)
 }
