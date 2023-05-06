@@ -1,10 +1,8 @@
 package socket
 
 import (
-	"bytes"
-	"errors"
+	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -20,6 +18,8 @@ const (
 	Unknown Event = ""
 )
 
+const Delimiter = '\n'
+
 // parseEvent accepts a string event and parses it, returning Event type and
 // the rest of the string.
 //
@@ -31,23 +31,12 @@ const (
 //
 // If no known event type was found, Unknown is returned.
 func parseEvent(c net.Conn) (Event, string, error) {
-	buf := make([]byte, 0, 1024)
-	tmp := make([]byte, 0, 1024)
-
-	for {
-		n, err := c.Read(tmp)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return Unknown, "", err
-		}
-
-		buf = append(buf, tmp[:n]...)
+	s, err := bufio.NewReader(c).ReadString(Delimiter)
+	if err != nil {
+		return Unknown, "", err
 	}
 
-	s := strings.TrimSpace(string(buf))
+	s = strings.TrimSpace(s)
 	split := strings.SplitN(s, " ", 1)
 	switch split[0] {
 	case "ADD":
@@ -63,19 +52,41 @@ func parseEvent(c net.Conn) (Event, string, error) {
 	}
 }
 
-func writeEvent(w net.Conn, e Event, args ...any) error {
-	buf := bytes.Buffer{}
-	buf.WriteString(string(e))
-	for i, arg := range args {
-		if i == 0 {
-			buf.WriteByte(' ')
-		}
+func writeEvent(w net.Conn, event Event, args ...any) error {
+	writer := bufio.NewWriter(w)
 
-		buf.WriteString(fmt.Sprint(arg))
+	if _, err := writer.WriteString(string(event)); err != nil {
+		return fmt.Errorf("unable to write to net.Conn: %w", err)
 	}
 
-	_, err := w.Write(buf.Bytes())
-	return err
+	if err := writer.WriteByte(' '); err != nil {
+		return fmt.Errorf("unable to write to net.Conn: %w", err)
+	}
+
+	strs := make([]string, 0, len(args))
+
+	for _, arg := range args {
+		s, ok := arg.(string)
+		if !ok {
+			return fmt.Errorf("unable to convert %v to string", arg)
+		}
+
+		strs = append(strs, s)
+	}
+
+	if _, err := writer.WriteString(strings.Join(strs, " ")); err != nil {
+		return fmt.Errorf("unable to write to net.Conn: %w", err)
+	}
+
+	if err := writer.WriteByte(Delimiter); err != nil {
+		return fmt.Errorf("unable to write to net.Conn: %w", err)
+	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("unable to write to net.Conn: %w", err)
+	}
+
+	return nil
 }
 
 func parseSize(s string) (int, error) {
