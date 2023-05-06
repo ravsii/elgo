@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -43,41 +42,36 @@ func (s *Server) Listen() (err error) {
 			return fmt.Errorf("accept connection: %w", err)
 		}
 
-		go s.handle(conn)
+		go s.handleConn(conn)
 	}
 }
 
-func (s *Server) handle(conn net.Conn) {
+func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	reader := bufio.NewReaderSize(conn, 1024)
-	writer := bufio.NewWriterSize(conn, 1024)
-
 	for done := false; !done; {
-		input, err := reader.ReadString('\n')
+		event, args, err := parseEvent(conn)
 		if err != nil {
-			log.Println("read all: ", err)
-			return
+			log.Println("parse: ", err)
+			continue
 		}
 
-		log.Println("received", input)
+		go s.handleEvent(conn, event, args)
+	}
+}
 
-		event, _ := parseEvent(input)
-		switch event {
-		case "ADD":
+func (s *Server) handleEvent(conn net.Conn, event Event, args string) {
+	switch event {
+	case "ADD":
 
-		case "MATCH":
+	case "MATCH":
 
-		case "REMOVE":
+	case "REMOVE":
 
-		case "SIZE":
-			size := s.pool.Size()
-			writer.Write(createEvent(Size, size))
-			writer.Flush()
-			fmt.Print(1)
-
-		default:
-			conn.Write([]byte("test"))
-		}
+	case "SIZE":
+		size := s.pool.Size()
+		writeEvent(conn, Size, size)
+	default:
+		log.Println("Unknown event:", event, args)
 	}
 }
