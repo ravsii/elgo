@@ -1,7 +1,9 @@
 package socket
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -49,9 +51,13 @@ func (s *Server) Listen() (err error) {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	for done := false; !done; {
+	for {
 		event, args, err := parseEvent(conn)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return
+			}
+
 			log.Println("parse: ", err)
 			continue
 		}
@@ -62,13 +68,17 @@ func (s *Server) handleConn(conn net.Conn) {
 
 func (s *Server) handleEvent(conn net.Conn, event Event, args string) {
 	switch event {
-	case "ADD":
+	case Add:
+		players, err := decodePlayers(args)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-	case "MATCH":
+		s.pool.AddPlayer(players...)
+	case Remove:
 
-	case "REMOVE":
-
-	case "SIZE":
+	case Size:
 		size := s.pool.Size()
 		writeEvent(conn, Size, size)
 	default:
