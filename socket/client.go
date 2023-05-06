@@ -8,7 +8,7 @@ import (
 )
 
 type Client struct {
-	server  net.Conn
+	conn    net.Conn
 	matches chan elgo.Match
 }
 
@@ -19,7 +19,7 @@ func NewClient(port int) (*Client, error) {
 	}
 
 	c := &Client{
-		server:  conn,
+		conn:    conn,
 		matches: make(chan elgo.Match),
 	}
 
@@ -40,6 +40,12 @@ func (c *Client) ReceiveMatch() elgo.Match {
 // Size returns current amount of players in the pool
 func (c *Client) Size() int {
 	return 0
+}
+
+// Close closes c.conn and matches channel
+func (c *Client) Close() error {
+	close(c.matches)
+	return c.conn.Close()
 }
 
 func (c *Client) listenForMatches() {
