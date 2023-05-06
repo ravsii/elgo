@@ -12,8 +12,8 @@ type Client struct {
 	matches chan elgo.Match
 }
 
-func NewClient(port int) (*Client, error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf(":%d", port))
+func NewClient(listenAddr string) (*Client, error) {
+	conn, err := net.Dial("tcp", listenAddr)
 	if err != nil {
 		return nil, fmt.Errorf("dial: %w", err)
 	}
