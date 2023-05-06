@@ -5,10 +5,8 @@ import "testing"
 func TestWithoutKFactors(t *testing.T) {
 	t.Parallel()
 
-	expected := 10.
-	calc := NewCalc(expected)
-	if calc.k != expected {
-		t.Errorf("NewCalc() k = %f, got %f", expected, calc.k)
+	if calc := NewCalc(10); calc.k != 10 {
+		t.Errorf("NewCalc() k = %f, got %f", 10., calc.k)
 	}
 }
 
@@ -22,7 +20,9 @@ func TestWithKFactor(t *testing.T) {
 		want  kFactors
 	}{
 		{"empty", 10, nil, nil},
-		{"2 sorted", 10,
+		{
+			"2 sorted",
+			10,
 			[]CalcOpt{
 				WithKFactor(1000, 20),
 				WithKFactor(1500, 30),
@@ -32,7 +32,9 @@ func TestWithKFactor(t *testing.T) {
 				{30, 1500},
 			},
 		},
-		{"2 not sorted", 10,
+		{
+			"2 not sorted",
+			10,
 			[]CalcOpt{
 				WithKFactor(1500, 30),
 				WithKFactor(1000, 20),
@@ -42,7 +44,8 @@ func TestWithKFactor(t *testing.T) {
 				{30, 1500},
 			},
 		},
-		{"5 not sorted", 10,
+		{
+			"5 not sorted", 10,
 			[]CalcOpt{
 				WithKFactor(2000, 10),
 				WithKFactor(1000, 20),

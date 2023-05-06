@@ -22,7 +22,7 @@ func (f kFactors) Less(i, j int) bool { return f[i].startsAt < f[j].startsAt }
 //
 //	elgo.NewCalc(...)
 //
-// to create a new calculator
+// to create a new calculator.
 type Calculator struct {
 	k        float64
 	kFactors kFactors

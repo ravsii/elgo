@@ -32,7 +32,6 @@ func TestWithPlayerRetry(t *testing.T) {
 
 	if pool.playerRetryInterval != want {
 		t.Errorf("want playerRetryInterval %d, got %d", want, pool.playerRetryInterval)
-
 	}
 }
 
