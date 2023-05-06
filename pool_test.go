@@ -139,7 +139,8 @@ func TestErrPoolClosed(t *testing.T) {
 		pool   = elgo.NewPool()
 		player = CreatePlayerMock("mock", 1000)
 	)
-	pool.Close()
+
+	_ = pool.Close()
 
 	if err := pool.AddPlayer(player); err == nil || !errors.Is(err, elgo.ErrPoolClosed) {
 		t.Errorf("expected error %s, got %s", elgo.ErrPoolClosed, err)
@@ -202,16 +203,14 @@ func TestGlobalRetryInterval(t *testing.T) {
 		t.Errorf("match took too long to create")
 	}
 
-	queue := pool.Close()
-	if len(queue) != 0 {
+	if queue := pool.Close(); len(queue) != 0 {
 		t.Errorf("test queue should be empty, got: %v", queue)
 	}
 }
 
 // acceptMatch tries to read from match channel, throws error otherwise.
 func acceptMatch(pool *elgo.Pool, t *testing.T) {
-	_, ok := <-pool.Matches()
-	if !ok {
+	if _, ok := <-pool.Matches(); !ok {
 		t.Error("channel is closed, but it shouldn't be")
 	}
 }
