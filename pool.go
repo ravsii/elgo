@@ -128,6 +128,16 @@ func (p *Pool) Close() map[string]Player {
 	return playersLeft
 }
 
+// Remove removes players from queue. It's concurrency-safe.
+func (p *Pool) Remove(players ...Identifier) {
+	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
+	for _, player := range players {
+		delete(p.players, player.Identify())
+	}
+}
+
 // Run start an infinite loop for matchmaking. Usually it's a good idea to
 // use it as a goroutine:
 //
