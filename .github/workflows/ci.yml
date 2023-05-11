@@ -28,6 +28,8 @@ jobs:
           only-new-issues: true
   
   race-test:
+    needs:
+      - lint
     strategy:
       matrix: 
         n: [1, 2, 3]
