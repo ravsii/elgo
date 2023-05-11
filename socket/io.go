@@ -3,7 +3,6 @@ package socket
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync"
@@ -42,7 +41,6 @@ func (c *safeIO) Read() (Event, string, error) {
 
 	s = strings.Trim(s, " \n\r")
 	eventStr, args, _ := strings.Cut(s, " ")
-	log.Println("read", eventStr, args)
 
 	switch eventStr {
 	case "ADD":
