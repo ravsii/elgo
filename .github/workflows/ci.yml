@@ -26,9 +26,42 @@ jobs:
         with:
           version: v1.52.2
           only-new-issues: true
+  
+  race-test:
+    strategy:
+      matrix: 
+        n: [1, 2, 3]
+    env:
+      GO: 1.20.x
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+
+      # Cache go build cache, used to speedup go test
+      - name: Go Build Cache
+        uses: actions/cache@v3
+        with:
+          path: $(go env GOCACHE)
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+
+      # Cache go mod cache, used to speedup builds
+      - name: Go Mod Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: Test \#${{ matrix.n }}
+        run: go test -v --race --count 1 ./...
+
   test:
     needs:
       - lint
+      - race-test
     strategy:
       matrix:
         go-version: [1.20.x]
@@ -69,20 +102,3 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: true
           verbose: true
-
-  release:
-    runs-on: ubuntu-latest
-    needs:
-      - test
-      - lint
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version: 1.20
-      - uses: go-semantic-release/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
