@@ -41,7 +41,7 @@ func main() {
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(500 * time.Millisecond)
 			size, err := client.Size()
 			if err != nil {
 				log.Fatalf("client: size: %s", err)
@@ -51,7 +51,7 @@ func main() {
 		}
 	}()
 
-	matches := 10
+	matches := 10000
 
 	for i := 0; i < matches*2; i++ {
 		p := player.New(fmt.Sprint(i), rand.Float64())

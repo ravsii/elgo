@@ -102,7 +102,7 @@ func (c *Client) listen() {
 			continue
 		}
 
-		c.handleEvent(event, args)
+		go c.handleEvent(event, args)
 	}
 }
 
