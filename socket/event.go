@@ -15,7 +15,7 @@ const (
 	Match Event = "MATCH"
 	// Remove is a server-only event if a certain players leaves the pool.
 	Remove Event = "REMOVE"
-	// Size is a double-size event:
+	// Size is a double-side event:
 	//	- When sent from the client to the server, it will ask for
 	//	the current amount of players in queue.
 	//	It should be sent without arguments (SIZE)
