@@ -20,8 +20,8 @@ type poolPlayer struct {
 
 // Match is a struct that holds 2 players who should be matched.
 type Match struct {
-	Player1 Player
-	Player2 Player
+	Player1 Identifier
+	Player2 Identifier
 }
 
 // Pool is a main struct for matchmaking pool.
