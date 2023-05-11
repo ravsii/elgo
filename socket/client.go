@@ -1,27 +1,24 @@
 package socket
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"github.com/ravsii/elgo"
 )
 
+var ErrNoResponse = errors.New("server didn't respond")
+
 type Client struct {
 	conn net.Conn
-	r    *bufio.Reader
-	w    *bufio.Writer
+	io   *safeIO
 
 	addCh   chan elgo.Player
-	sizeCh  chan sizeOp
+	sizeCh  chan int
 	matchCh chan elgo.Match
-}
-
-type sizeOp struct {
-	size int
-	err  error
 }
 
 func NewClient(listenAddr string) (*Client, error) {
@@ -32,11 +29,10 @@ func NewClient(listenAddr string) (*Client, error) {
 
 	c := &Client{
 		conn: conn,
-		r:    bufio.NewReaderSize(conn, 1024),
-		w:    bufio.NewWriterSize(conn, 1024),
+		io:   newSafeIO(conn),
 
 		addCh:   make(chan elgo.Player),
-		sizeCh:  make(chan sizeOp),
+		sizeCh:  make(chan int),
 		matchCh: make(chan elgo.Match),
 	}
 
@@ -52,7 +48,7 @@ func (c *Client) Add(players ...elgo.Player) error {
 		encoded = append(encoded, encodePlayer(p))
 	}
 
-	if err := writeEvent(c.w, Add, encoded...); err != nil {
+	if err := c.io.Write(Add, encoded...); err != nil {
 		return fmt.Errorf("can't add players to the queue: %w", err)
 	}
 
@@ -68,34 +64,39 @@ func (c *Client) ReceiveMatch() elgo.Match {
 
 // Size returns current amount of players in the pool.
 func (c *Client) Size() (int, error) {
-	if err := writeEvent(c.w, Size); err != nil {
+	if err := c.io.Write(Size); err != nil {
 		return 0, fmt.Errorf("unable to write: %w", err)
 	}
 
-	result := <-c.sizeCh
-	if result.err != nil {
-		return 0, result.err
+	select {
+	case size := <-c.sizeCh:
+		return size, nil
+	case <-time.After(10 * time.Second):
+		return 0, ErrNoResponse
 	}
-
-	return result.size, nil
-
 }
 
-// Close closes c.conn and matches channel
-func (c *Client) Close() error {
+// Close closes c.conn and matches channel.
+func (c *Client) Close() (err error) {
 	close(c.matchCh)
-	return c.conn.Close()
+	defer func() {
+		if err = c.conn.Close(); err != nil {
+			err = fmt.Errorf("conn close: %w", err)
+		}
+	}()
+
+	return nil
 }
 
 func (c *Client) listen() {
 	for {
-		event, args, err := parseEvent(c.r)
+		event, args, err := c.io.Read()
 		if err != nil {
 			log.Println("err while read: ", err)
 			continue
 		}
 
-		go c.handleEvent(event, args)
+		c.handleEvent(event, args)
 	}
 }
 
@@ -103,13 +104,13 @@ func (c *Client) handleEvent(event Event, args string) {
 	switch event {
 	case Size:
 		size, err := parseSize(args)
+		c.sizeCh <- size
 		if err != nil {
-			c.sizeCh <- sizeOp{0, err}
-			return
+			log.Println("size:", err)
 		}
-
-		c.sizeCh <- sizeOp{size, nil}
+	case Unknown:
+		fallthrough
 	default:
-		fmt.Println("default")
+		log.Printf("got unknown event %s %s, ignoring", event, args)
 	}
 }

@@ -39,22 +39,20 @@ func main() {
 			time.Sleep(time.Second)
 			size, err := client.Size()
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("client: size: %s", err)
 			}
 
 			fmt.Println("client: size", size)
 		}
 	}()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 10000; i++ {
 		p := player.New(fmt.Sprint(i), rand.Float64())
 		err := client.Add(p)
 		if err != nil {
-			log.Fatal("client: add", err)
+			log.Fatalf("client: add player: %s", err)
 		}
-
-		// time.Sleep(time.Second)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(10 * time.Second)
 }

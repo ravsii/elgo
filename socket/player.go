@@ -11,16 +11,17 @@ import (
 
 var ErrBadInput = errors.New("bad player input")
 
-type SocketPlayer struct {
+// socketPlayer is a VERY basic implementation of a player.
+type socketPlayer struct {
 	ID  string
 	ELO float64
 }
 
-func (p *SocketPlayer) Identify() string {
+func (p *socketPlayer) Identify() string {
 	return p.ID
 }
 
-func (p *SocketPlayer) Rating() float64 {
+func (p *socketPlayer) Rating() float64 {
 	return p.ELO
 }
 
@@ -28,7 +29,7 @@ func encodePlayer(p elgo.Player) string {
 	return fmt.Sprintf("%s;%f", p.Identify(), p.Rating())
 }
 
-func decodePlayer(s string) (elgo.Player, error) {
+func decodePlayer(s string) (*socketPlayer, error) {
 	id, ratingStr, found := strings.Cut(s, ";")
 	if !found {
 		return nil, fmt.Errorf("%w: %s", ErrBadInput, s)
@@ -39,7 +40,7 @@ func decodePlayer(s string) (elgo.Player, error) {
 		return nil, fmt.Errorf("parse rating: %w", err)
 	}
 
-	return &SocketPlayer{ID: id, ELO: r}, nil
+	return &socketPlayer{ID: id, ELO: r}, nil
 }
 
 func decodePlayers(s string) ([]elgo.Player, error) {
