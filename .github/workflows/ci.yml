@@ -55,10 +55,10 @@ jobs:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
 
-      - name: Test \#${{ matrix.n }}
+      - name: Test ${{ matrix.n }}
         run: go test -v --race --count 1 ./...
 
-  test:
+  coverage:
     needs:
       - lint
       - race-test
@@ -91,7 +91,7 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
 
       - name: Test
-        run: go test -v --race  -coverprofile=coverage.txt ./...
+        run: go test -v -coverprofile=coverage.txt ./...
 
       - name: Upload Codecov
         uses: codecov/codecov-action@v3
