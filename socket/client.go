@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -9,7 +10,10 @@ import (
 )
 
 type Client struct {
-	conn    net.Conn
+	conn net.Conn
+	r    *bufio.Reader
+	w    *bufio.Writer
+
 	addCh   chan elgo.Player
 	sizeCh  chan sizeOp
 	matchCh chan elgo.Match
@@ -27,7 +31,10 @@ func NewClient(listenAddr string) (*Client, error) {
 	}
 
 	c := &Client{
-		conn:    conn,
+		conn: conn,
+		r:    bufio.NewReaderSize(conn, 1024),
+		w:    bufio.NewWriterSize(conn, 1024),
+
 		addCh:   make(chan elgo.Player),
 		sizeCh:  make(chan sizeOp),
 		matchCh: make(chan elgo.Match),
@@ -45,7 +52,7 @@ func (c *Client) Add(players ...elgo.Player) error {
 		encoded = append(encoded, encodePlayer(p))
 	}
 
-	if err := writeEvent(c.conn, Add, encoded...); err != nil {
+	if err := writeEvent(c.w, Add, encoded...); err != nil {
 		return fmt.Errorf("can't add players to the queue: %w", err)
 	}
 
@@ -61,7 +68,7 @@ func (c *Client) ReceiveMatch() elgo.Match {
 
 // Size returns current amount of players in the pool.
 func (c *Client) Size() (int, error) {
-	if err := writeEvent(c.conn, Size); err != nil {
+	if err := writeEvent(c.w, Size); err != nil {
 		return 0, fmt.Errorf("unable to write: %w", err)
 	}
 
@@ -82,7 +89,7 @@ func (c *Client) Close() error {
 
 func (c *Client) listen() {
 	for {
-		event, args, err := parseEvent(c.conn)
+		event, args, err := parseEvent(c.r)
 		if err != nil {
 			log.Println("err while read: ", err)
 			continue

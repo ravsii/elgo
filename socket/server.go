@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -51,8 +52,11 @@ func (s *Server) Listen() (err error) {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
+	r := bufio.NewReader(conn)
+	w := bufio.NewWriter(conn)
+
 	for {
-		event, args, err := parseEvent(conn)
+		event, args, err := parseEvent(r)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return
@@ -62,11 +66,11 @@ func (s *Server) handleConn(conn net.Conn) {
 			continue
 		}
 
-		go s.handleEvent(conn, event, args)
+		go s.handleEvent(w, event, args)
 	}
 }
 
-func (s *Server) handleEvent(conn net.Conn, event Event, args string) {
+func (s *Server) handleEvent(w *bufio.Writer, event Event, args string) {
 	switch event {
 	case Add:
 		players, err := decodePlayers(args)
@@ -82,7 +86,7 @@ func (s *Server) handleEvent(conn net.Conn, event Event, args string) {
 
 	case Size:
 		size := s.pool.Size()
-		if err := writeEvent(conn, Size, size); err != nil {
+		if err := writeEvent(w, Size, size); err != nil {
 			log.Println("size write:", err)
 		}
 	default:

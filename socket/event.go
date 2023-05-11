@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"net"
 	"strconv"
 	"strings"
 )
@@ -29,7 +28,7 @@ const (
 	Unknown Event = ""
 )
 
-const Delimiter = "\r\n"
+const Delimiter byte = '\n'
 
 // parseEvent accepts a string event and parses it, returning Event type and
 // the rest of the string.
@@ -41,15 +40,13 @@ const Delimiter = "\r\n"
 //	SIZE
 //
 // If no known event type was found, Unknown is returned.
-func parseEvent(c net.Conn) (Event, string, error) {
-	// var buf bytes.Buffer
-	// io.Copy(&buf, c)
-	s, err := bufio.NewReader(c).ReadString('\n')
+func parseEvent(reader *bufio.Reader) (Event, string, error) {
+	b, err := reader.ReadString(Delimiter)
 	if err != nil {
 		return Unknown, "", err
 	}
 
-	s = strings.Trim(s, " \n\r")
+	s := strings.Trim(string(b), " \n\r")
 	eventStr, args, _ := strings.Cut(s, " ")
 	log.Println("read", eventStr, args)
 
@@ -67,7 +64,7 @@ func parseEvent(c net.Conn) (Event, string, error) {
 	}
 }
 
-func writeEvent(w net.Conn, event Event, args ...any) error {
+func writeEvent(w *bufio.Writer, event Event, args ...any) error {
 	buf := append([]byte(event), ' ')
 
 	if len(args) > 0 {
@@ -80,15 +77,16 @@ func writeEvent(w net.Conn, event Event, args ...any) error {
 		buf = append(buf, []byte(str)...)
 	}
 
-	buf = append(buf, []byte("\r\n")...)
+	buf = append(buf, Delimiter)
 
-	n, err := w.Write(buf)
+	_, err := w.Write(buf)
 	if err != nil {
 		return fmt.Errorf("unable to write to net.Conn: %w", err)
 	}
 
-	// -2 to remove \r\n
-	log.Println("write", len(buf), n, string(buf[:len(buf)-2]))
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flush: %w", err)
+	}
 
 	return nil
 }
