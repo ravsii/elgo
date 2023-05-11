@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -52,12 +53,15 @@ func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
 	safeIO := newSafeIO(conn)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go s.sendMatches(ctx, safeIO)
 
 	for {
 		event, args, err := safeIO.Read()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return
+				break
 			}
 
 			log.Println("parse: ", err)
@@ -66,12 +70,34 @@ func (s *Server) handleConn(conn net.Conn) {
 
 		go s.handleEvent(safeIO, event, args)
 	}
+
+	cancel()
+}
+
+func (s *Server) sendMatches(ctx context.Context, safeWriter *safeIO) {
+	for {
+		select {
+		case match, ok := <-s.pool.Matches():
+			if !ok {
+				return
+			}
+
+			s := fmt.Sprintf("%s;%s", match.Player1.Identify(), match.Player2.Identify())
+			if err := safeWriter.Write(Match, s); err != nil {
+				log.Println("write:", err)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (s *Server) handleEvent(safeWriter *safeIO, event Event, args string) {
 	switch event {
+	case Match: // Match is handled in sendMatches()
+
 	case Add:
-		players, err := decodePlayers(args)
+		players, err := decodeRatingPlayers(args)
 		if err != nil {
 			log.Println(err)
 			return
@@ -81,8 +107,7 @@ func (s *Server) handleEvent(safeWriter *safeIO, event Event, args string) {
 			log.Println("pool add:", err)
 		}
 	case Remove:
-	case Match:
-
+		s.pool.Remove()
 	case Size:
 		size := s.pool.Size()
 		if err := safeWriter.Write(Size, size); err != nil {

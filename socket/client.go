@@ -1,10 +1,13 @@
 package socket
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ravsii/elgo"
@@ -16,9 +19,8 @@ type Client struct {
 	conn net.Conn
 	io   *safeIO
 
-	addCh   chan elgo.Player
 	sizeCh  chan int
-	matchCh chan elgo.Match
+	matchCh chan *elgo.Match
 }
 
 func NewClient(listenAddr string) (*Client, error) {
@@ -31,9 +33,8 @@ func NewClient(listenAddr string) (*Client, error) {
 		conn: conn,
 		io:   newSafeIO(conn),
 
-		addCh:   make(chan elgo.Player),
 		sizeCh:  make(chan int),
-		matchCh: make(chan elgo.Match),
+		matchCh: make(chan *elgo.Match),
 	}
 
 	go c.listen()
@@ -57,9 +58,14 @@ func (c *Client) Add(players ...elgo.Player) error {
 
 // ReceiveMatch wait for a match to appear and returns now.
 //
-// This is a blocking operation.
-func (c *Client) ReceiveMatch() elgo.Match {
-	return <-c.matchCh
+// This is a blocking operation, use context to prematurely close it.
+func (c *Client) ReceiveMatch(ctx context.Context) *elgo.Match {
+	select {
+	case match := <-c.matchCh:
+		return match
+	case <-ctx.Done():
+		return nil
+	}
 }
 
 // Size returns current amount of players in the pool.
@@ -102,12 +108,29 @@ func (c *Client) listen() {
 
 func (c *Client) handleEvent(event Event, args string) {
 	switch event {
-	case Size:
-		size, err := parseSize(args)
-		c.sizeCh <- size
-		if err != nil {
-			log.Println("size:", err)
+	// below are server-only events
+	case Add:
+	case Remove:
+
+	case Match:
+		s := strings.TrimSpace(args)
+		p1Ident, p2Ident, found := strings.Cut(s, ";")
+		if !found {
+			log.Printf("cut not found")
 		}
+
+		c.matchCh <- &elgo.Match{
+			Player1: &socketPlayer{ID: p1Ident},
+			Player2: &socketPlayer{ID: p2Ident},
+		}
+	case Size:
+		s := strings.TrimSpace(args)
+		size, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			log.Println("parse size:", err)
+		}
+
+		c.sizeCh <- int(size)
 	case Unknown:
 		fallthrough
 	default:

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -16,6 +17,10 @@ func main() {
 	pool.AddPlayer(
 		player.New("Example 1", 0),
 		player.New("Example 2", 0))
+
+	defer pool.Close()
+
+	go pool.Run()
 
 	server := socket.NewServer(":3000", pool)
 
@@ -46,12 +51,21 @@ func main() {
 		}
 	}()
 
-	for i := 0; i < 10000; i++ {
+	matches := 10
+
+	for i := 0; i < matches*2; i++ {
 		p := player.New(fmt.Sprint(i), rand.Float64())
 		err := client.Add(p)
 		if err != nil {
 			log.Fatalf("client: add player: %s", err)
 		}
+	}
+
+	ctx := context.Background()
+
+	for i := 0; i < matches; i++ {
+		p := client.ReceiveMatch(ctx)
+		log.Println("match", p.Player1.Identify(), p.Player2.Identify())
 	}
 
 	time.Sleep(10 * time.Second)
