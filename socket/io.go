@@ -14,7 +14,7 @@ const Delimiter byte = '\n'
 type safeIO struct {
 	r *bufio.Reader
 	w *bufio.Writer
-	m sync.RWMutex
+	m sync.Mutex
 }
 
 func newSafeIO(c net.Conn) *safeIO {
@@ -35,9 +35,6 @@ func newSafeIO(c net.Conn) *safeIO {
 //
 // If no known event type was found, Unknown is returned.
 func (c *safeIO) Read() (Event, string, error) {
-	// c.m.RLock()
-	// defer c.m.RUnlock()
-
 	s, err := c.r.ReadString(Delimiter)
 	if err != nil {
 		return Unknown, "", fmt.Errorf("reader: %w", err)
