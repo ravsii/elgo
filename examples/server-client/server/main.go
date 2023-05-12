@@ -16,7 +16,7 @@ func main() {
 
 	defer pool.Close()
 
-	// go pool.Run()
+	go pool.Run()
 
 	server := socket.NewServer(":3000", pool)
 	log.Fatal(server.Listen())

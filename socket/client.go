@@ -17,9 +17,9 @@ var ErrNoResponse = errors.New("server didn't respond")
 type Client struct {
 	conn       net.Conn
 	readWriter *ReadWriter
-
-	sizeCh  chan int
-	matchCh chan *elgo.Match
+	sizeCh     chan int
+	matchCh    chan *elgo.Match
+	closeCh    chan struct{}
 }
 
 func NewClient(listenAddr string) (*Client, error) {
@@ -33,6 +33,7 @@ func NewClient(listenAddr string) (*Client, error) {
 		readWriter: newReadWriter(conn),
 		sizeCh:     make(chan int),
 		matchCh:    make(chan *elgo.Match),
+		closeCh:    make(chan struct{}),
 	}
 
 	go c.listen()
@@ -93,26 +94,32 @@ func (c *Client) Size() (int, error) {
 }
 
 // Close closes c.conn and matches channel.
-func (c *Client) Close() (err error) {
+func (c *Client) Close() error {
+	c.closeCh <- struct{}{}
+	close(c.closeCh)
 	close(c.matchCh)
-	defer func() {
-		if err = c.conn.Close(); err != nil {
-			err = fmt.Errorf("conn close: %w", err)
-		}
-	}()
+	close(c.sizeCh)
+	if err := c.conn.Close(); err != nil {
+		return fmt.Errorf("conn close: %w", err)
+	}
 
 	return nil
 }
 
 func (c *Client) listen() {
 	for {
-		event, args, err := c.readWriter.Read()
-		if err != nil {
-			log.Println("err while read: ", err)
-			continue
-		}
+		select {
+		case <-c.closeCh:
+			return
+		default:
+			event, args, err := c.readWriter.Read()
+			if err != nil {
+				log.Println("err while read: ", err)
+				continue
+			}
 
-		go c.handleEvent(event, args)
+			go c.handleEvent(event, args)
+		}
 	}
 }
 
