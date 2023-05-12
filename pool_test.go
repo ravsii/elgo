@@ -226,6 +226,38 @@ func TestGlobalRetryInterval(t *testing.T) {
 	}
 }
 
+func TestRemove(t *testing.T) {
+	t.Parallel()
+
+	p := elgo.NewPool()
+
+	p1 := CreatePlayerMock("p1", 1000)
+	p2 := CreatePlayerMock("p2", 1000)
+
+	_ = p.AddPlayer(p1, p2)
+	p.Remove(p1, p2)
+
+	if players := p.Close(); len(players) != 0 {
+		t.Errorf("RemoveStrs did not remove all players.")
+	}
+}
+
+func TestRemoveStrs(t *testing.T) {
+	t.Parallel()
+
+	p := elgo.NewPool()
+
+	p1 := CreatePlayerMock("p1", 1000)
+	p2 := CreatePlayerMock("p2", 1000)
+
+	_ = p.AddPlayer(p1, p2)
+	p.RemoveStrs("p1", "p2")
+
+	if players := p.Close(); len(players) != 0 {
+		t.Errorf("RemoveStrs did not remove all players.")
+	}
+}
+
 // acceptMatch tries to read from match channel, throws error otherwise.
 func acceptMatch(t *testing.T, pool *elgo.Pool) {
 	t.Helper()
