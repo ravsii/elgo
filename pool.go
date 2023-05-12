@@ -138,6 +138,17 @@ func (p *Pool) Remove(players ...Identifier) {
 	}
 }
 
+// RemoveStrs is a copy of Remove but it accepts strings instead of Identifier.
+// It's concurrency-safe.
+func (p *Pool) RemoveStrs(players ...string) {
+	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
+	for _, player := range players {
+		delete(p.players, player)
+	}
+}
+
 // Run start an infinite loop for matchmaking. Usually it's a good idea to
 // use it as a goroutine:
 //

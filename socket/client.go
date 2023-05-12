@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -16,8 +15,8 @@ import (
 var ErrNoResponse = errors.New("server didn't respond")
 
 type Client struct {
-	conn net.Conn
-	io   *safeIO
+	conn       net.Conn
+	readWriter *ReadWriter
 
 	sizeCh  chan int
 	matchCh chan *elgo.Match
@@ -30,11 +29,10 @@ func NewClient(listenAddr string) (*Client, error) {
 	}
 
 	c := &Client{
-		conn: conn,
-		io:   newSafeIO(conn),
-
-		sizeCh:  make(chan int),
-		matchCh: make(chan *elgo.Match),
+		conn:       conn,
+		readWriter: newReadWriter(conn),
+		sizeCh:     make(chan int),
+		matchCh:    make(chan *elgo.Match),
 	}
 
 	go c.listen()
@@ -49,28 +47,40 @@ func (c *Client) Add(players ...elgo.Player) error {
 		encoded = append(encoded, encodePlayer(p))
 	}
 
-	if err := c.io.Write(Add, encoded...); err != nil {
+	if err := c.readWriter.Write(Add, encoded...); err != nil {
 		return fmt.Errorf("can't add players to the queue: %w", err)
 	}
 
 	return nil
 }
 
-// ReceiveMatch wait for a match to appear and returns now.
-//
-// This is a blocking operation, use context to prematurely close it.
-func (c *Client) ReceiveMatch(ctx context.Context) *elgo.Match {
-	select {
-	case match := <-c.matchCh:
-		return match
-	case <-ctx.Done():
-		return nil
+// ReceiveMatch returns a match channel to listen to.
+func (c *Client) ReceiveMatch() <-chan *elgo.Match {
+	return c.matchCh
+}
+
+// Remove removes players from the pool.
+func (c *Client) Remove(players ...elgo.Identifier) error {
+	s := make([]string, 0)
+	for _, p := range players {
+		s = append(s, p.Identify())
 	}
+
+	return c.RemoveStrs(s...)
+}
+
+// RemoveStrs removes players from the pool by their Identifiers.
+func (c *Client) RemoveStrs(identifiers ...string) error {
+	if err := c.readWriter.Write(Remove, strings.Join(identifiers, " ")); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
+
+	return nil
 }
 
 // Size returns current amount of players in the pool.
 func (c *Client) Size() (int, error) {
-	if err := c.io.Write(Size); err != nil {
+	if err := c.readWriter.Write(Size); err != nil {
 		return 0, fmt.Errorf("unable to write: %w", err)
 	}
 
@@ -96,7 +106,7 @@ func (c *Client) Close() (err error) {
 
 func (c *Client) listen() {
 	for {
-		event, args, err := c.io.Read()
+		event, args, err := c.readWriter.Read()
 		if err != nil {
 			log.Println("err while read: ", err)
 			continue
@@ -108,10 +118,6 @@ func (c *Client) listen() {
 
 func (c *Client) handleEvent(event Event, args string) {
 	switch event {
-	// below are server-only events
-	case Add:
-	case Remove:
-
 	case Match:
 		s := strings.TrimSpace(args)
 		p1Ident, p2Ident, found := strings.Cut(s, ";")
@@ -131,8 +137,6 @@ func (c *Client) handleEvent(event Event, args string) {
 		}
 
 		c.sizeCh <- int(size)
-	case Unknown:
-		fallthrough
 	default:
 		log.Printf("got unknown event %s %s, ignoring", event, args)
 	}

@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/ravsii/elgo"
 )
@@ -52,13 +54,13 @@ func (s *Server) Listen() (err error) {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	safeIO := newSafeIO(conn)
+	readWriter := newReadWriter(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go s.sendMatches(ctx, safeIO)
+	go s.sendMatches(ctx, readWriter)
 
 	for {
-		event, args, err := safeIO.Read()
+		event, args, err := readWriter.Read()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -68,13 +70,13 @@ func (s *Server) handleConn(conn net.Conn) {
 			continue
 		}
 
-		go s.handleEvent(safeIO, event, args)
+		go s.handleEvent(readWriter, event, args)
 	}
 
 	cancel()
 }
 
-func (s *Server) sendMatches(ctx context.Context, safeWriter *safeIO) {
+func (s *Server) sendMatches(ctx context.Context, readWriter *ReadWriter) {
 	for {
 		select {
 		case match, ok := <-s.pool.Matches():
@@ -83,7 +85,7 @@ func (s *Server) sendMatches(ctx context.Context, safeWriter *safeIO) {
 			}
 
 			s := fmt.Sprintf("%s;%s", match.Player1.Identify(), match.Player2.Identify())
-			if err := safeWriter.Write(Match, s); err != nil {
+			if err := readWriter.Write(Match, s); err != nil {
 				log.Println("write:", err)
 			}
 		case <-ctx.Done():
@@ -92,29 +94,39 @@ func (s *Server) sendMatches(ctx context.Context, safeWriter *safeIO) {
 	}
 }
 
-func (s *Server) handleEvent(safeWriter *safeIO, event Event, args string) {
+func (s *Server) handleEvent(readWriter *ReadWriter, event Event, args string) {
 	switch event {
-	case Match: // Match is handled in sendMatches()
-
 	case Add:
-		players, err := decodeRatingPlayers(args)
-		if err != nil {
-			log.Println(err)
-			return
+		split := strings.Split(args, " ")
+		players := make([]elgo.Player, 0, len(split))
+
+		for _, playerStr := range split {
+			id, ratingStr, found := strings.Cut(playerStr, ";")
+			if !found {
+				log.Println(ErrBadInput, ":", playerStr)
+				return
+			}
+
+			r, err := strconv.ParseFloat(ratingStr, 64)
+			if err != nil {
+				log.Println("parse rating:", err)
+				return
+			}
+
+			players = append(players, &socketRatingPlayer{ID: id, ELO: r})
 		}
 
 		if err := s.pool.AddPlayer(players...); err != nil {
 			log.Println("pool add:", err)
 		}
 	case Remove:
-		s.pool.Remove()
+		toRemove := strings.Split(args, " ")
+		s.pool.RemoveStrs(toRemove...)
 	case Size:
 		size := s.pool.Size()
-		if err := safeWriter.Write(Size, size); err != nil {
+		if err := readWriter.Write(Size, size); err != nil {
 			log.Println("size write:", err)
 		}
-	case Unknown:
-		fallthrough
 	default:
 		log.Println("Unknown event:", event, args)
 	}

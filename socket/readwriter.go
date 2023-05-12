@@ -10,14 +10,14 @@ import (
 
 const Delimiter byte = '\n'
 
-type safeIO struct {
+type ReadWriter struct {
 	r *bufio.Reader
 	w *bufio.Writer
 	m sync.Mutex
 }
 
-func newSafeIO(c net.Conn) *safeIO {
-	return &safeIO{
+func newReadWriter(c net.Conn) *ReadWriter {
+	return &ReadWriter{
 		r: bufio.NewReader(c),
 		w: bufio.NewWriter(c),
 	}
@@ -33,7 +33,7 @@ func newSafeIO(c net.Conn) *safeIO {
 //	SIZE
 //
 // If no known event type was found, Unknown is returned.
-func (c *safeIO) Read() (Event, string, error) {
+func (c *ReadWriter) Read() (Event, string, error) {
 	s, err := c.r.ReadString(Delimiter)
 	if err != nil {
 		return Unknown, "", fmt.Errorf("reader: %w", err)
@@ -56,7 +56,7 @@ func (c *safeIO) Read() (Event, string, error) {
 	}
 }
 
-func (c *safeIO) Write(event Event, args ...any) error {
+func (c *ReadWriter) Write(event Event, args ...any) error {
 	c.m.Lock()
 	defer c.m.Unlock()
 
