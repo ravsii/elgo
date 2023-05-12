@@ -2,9 +2,6 @@ package socket
 
 import (
 	"errors"
-	"fmt"
-
-	"github.com/ravsii/elgo"
 )
 
 var ErrBadInput = errors.New("bad player input")
@@ -30,8 +27,4 @@ func (p *socketRatingPlayer) Identify() string {
 
 func (p *socketRatingPlayer) Rating() float64 {
 	return p.ELO
-}
-
-func encodePlayer(p elgo.Player) string {
-	return fmt.Sprintf("%s;%f", p.Identify(), p.Rating())
 }

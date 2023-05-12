@@ -44,7 +44,7 @@ func (c *Client) Add(players ...elgo.Player) error {
 	encoded := make([]any, 0, len(players))
 
 	for _, p := range players {
-		encoded = append(encoded, encodePlayer(p))
+		encoded = append(encoded, fmt.Sprintf("%s;%f", p.Identify(), p.Rating()))
 	}
 
 	if err := c.readWriter.Write(Add, encoded...); err != nil {
