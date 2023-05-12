@@ -229,15 +229,16 @@ func TestGlobalRetryInterval(t *testing.T) {
 func TestRemove(t *testing.T) {
 	t.Parallel()
 
-	p := elgo.NewPool()
+	pool := elgo.NewPool()
+	t.Cleanup(func() { pool.Close() })
 
 	p1 := CreatePlayerMock("p1", 1000)
 	p2 := CreatePlayerMock("p2", 1000)
 
-	_ = p.AddPlayer(p1, p2)
-	p.Remove(p1, p2)
+	_ = pool.AddPlayer(p1, p2)
+	pool.Remove(p1, p2)
 
-	if players := p.Close(); len(players) != 0 {
+	if players := pool.Close(); len(players) != 0 {
 		t.Errorf("RemoveStrs did not remove all players.")
 	}
 }
@@ -245,15 +246,16 @@ func TestRemove(t *testing.T) {
 func TestRemoveStrs(t *testing.T) {
 	t.Parallel()
 
-	p := elgo.NewPool()
+	pool := elgo.NewPool()
+	t.Cleanup(func() { pool.Close() })
 
 	p1 := CreatePlayerMock("p1", 1000)
 	p2 := CreatePlayerMock("p2", 1000)
 
-	_ = p.AddPlayer(p1, p2)
-	p.RemoveStrs("p1", "p2")
+	_ = pool.AddPlayer(p1, p2)
+	pool.RemoveStrs("p1", "p2")
 
-	if players := p.Close(); len(players) != 0 {
+	if players := pool.Close(); len(players) != 0 {
 		t.Errorf("RemoveStrs did not remove all players.")
 	}
 }
