@@ -3,7 +3,7 @@ package socket
 import (
 	"bufio"
 	"fmt"
-	"net"
+	"io"
 	"strings"
 	"sync"
 )
@@ -16,10 +16,10 @@ type ReadWriter struct {
 	m sync.Mutex
 }
 
-func newReadWriter(c net.Conn) *ReadWriter {
+func newReadWriter(rw io.ReadWriter) *ReadWriter {
 	return &ReadWriter{
-		r: bufio.NewReader(c),
-		w: bufio.NewWriter(c),
+		r: bufio.NewReader(rw),
+		w: bufio.NewWriter(rw),
 	}
 }
 
