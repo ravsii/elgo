@@ -5,12 +5,12 @@ package pool;
 message Empty {}
 
 message SizeResponse {
-	uint64 size = 1;
+	int32 size = 1;
 }
 
 message Player {
 	string id = 1;
-	float rating = 2;
+	float elo = 2;
 }
 
 message PlayerMatch {
