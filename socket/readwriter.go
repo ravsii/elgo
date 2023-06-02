@@ -2,6 +2,7 @@ package socket
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 const Delimiter byte = '\n'
+
+var ErrBadInput = errors.New("bad player input")
 
 type ReadWriter struct {
 	r *bufio.Reader

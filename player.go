@@ -17,3 +17,24 @@ type Player interface {
 	Identifier
 	Ratinger
 }
+
+type BasePlayer struct {
+	ID string
+}
+
+func (p *BasePlayer) Identify() string {
+	return p.ID
+}
+
+type BaseRatingPlayer struct {
+	ID  string
+	ELO float64
+}
+
+func (p *BaseRatingPlayer) Identify() string {
+	return p.ID
+}
+
+func (p *BaseRatingPlayer) Rating() float64 {
+	return p.ELO
+}
