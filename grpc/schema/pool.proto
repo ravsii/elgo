@@ -1,0 +1,26 @@
+syntax = "proto3";
+option go_package = "github.com/ravsii/elgo/grpc/schema";
+package pool;
+
+message Empty {}
+
+message SizeResponse {
+	uint64 size = 1;
+}
+
+message Player {
+	string id = 1;
+	float rating = 2;
+}
+
+message PlayerMatch {
+	Player p1 = 1;
+	Player p2 = 2;
+}
+
+service Pool {
+	rpc Add(Player) returns (Empty);
+	rpc Match(Empty) returns (stream PlayerMatch);
+	rpc Remove(Player) returns (Empty);
+	rpc Size(Empty) returns (SizeResponse);
+}
