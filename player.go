@@ -2,13 +2,13 @@ package elgo
 
 // Identifier is an interface that helps identify players.
 type Identifier interface {
-	// Identify should returns any kind of a unique identifier between players.
+	// Identify should return any kind of a (unique) identifier for a player.
 	Identify() string
 }
 
 // Ratinger is an interface to receive and change player's rating.
 type Ratinger interface {
-	// Rating should return player's rating.
+	// Rating should return player's ELO rating.
 	Rating() float64
 }
 

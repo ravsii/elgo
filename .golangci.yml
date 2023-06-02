@@ -12,23 +12,24 @@ output:
 linters:
   enable-all: true
   disable:
-    - testpackage
-    - funlen
+    - deadcode
     - dupl
+    - exhaustive
+    - exhaustivestruct
+    - exhaustruct
+    - funlen
+    - golint
     - gomnd
-    - wsl
+    - ifshort
+    - interfacer
+    - maligned
     - nlreturn
     - nosnakecase
-    - interfacer
-    - ifshort
-    - varcheck
-    - exhaustivestruct
+    - revive
     - scopelint
     - structcheck
-    - maligned
-    - deadcode
-    - golint
     - structcheck
+    - testpackage
+    - varcheck
     - varnamelen
-    - exhaustruct
-    - revive
+    - wsl

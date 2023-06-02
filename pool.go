@@ -20,8 +20,8 @@ type poolPlayer struct {
 
 // Match is a struct that holds 2 players who should be matched.
 type Match struct {
-	Player1 Player
-	Player2 Player
+	Player1 Identifier
+	Player2 Identifier
 }
 
 // Pool is a main struct for matchmaking pool.
@@ -67,7 +67,7 @@ func NewPool(opts ...PoolOpt) *Pool {
 // AddPlayer returns a queue channel to send new players to.
 // ErrAlreadyExists is returned if identifier is already taken.
 // ErrPoolClosed is returned if the pool is closed.
-func (p *Pool) AddPlayer(player Player) error {
+func (p *Pool) AddPlayer(players ...Player) error {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
 
@@ -77,15 +77,17 @@ func (p *Pool) AddPlayer(player Player) error {
 	default:
 	}
 
-	id := player.Identify()
-	if _, ok := p.players[id]; ok {
-		return ErrAlreadyExists
-	}
+	for _, player := range players {
+		id := player.Identify()
+		if _, ok := p.players[id]; ok {
+			return ErrAlreadyExists
+		}
 
-	p.players[id] = &poolPlayer{
-		player:        player,
-		ratingBorders: p.playersBordersIncreaseBy,
-		retryAt:       time.Now(),
+		p.players[id] = &poolPlayer{
+			player:        player,
+			ratingBorders: p.playersBordersIncreaseBy,
+			retryAt:       time.Now(),
+		}
 	}
 
 	return nil
@@ -124,6 +126,27 @@ func (p *Pool) Close() map[string]Player {
 	p.players = nil
 
 	return playersLeft
+}
+
+// Remove removes players from queue. It's concurrency-safe.
+func (p *Pool) Remove(players ...Identifier) {
+	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
+	for _, player := range players {
+		delete(p.players, player.Identify())
+	}
+}
+
+// RemoveStrs is a copy of Remove but it accepts strings instead of Identifier.
+// It's concurrency-safe.
+func (p *Pool) RemoveStrs(players ...string) {
+	p.playersLock.Lock()
+	defer p.playersLock.Unlock()
+
+	for _, player := range players {
+		delete(p.players, player)
+	}
 }
 
 // Run start an infinite loop for matchmaking. Usually it's a good idea to
