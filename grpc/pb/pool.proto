@@ -10,7 +10,7 @@ message SizeResponse {
 
 message Player {
 	string id = 1;
-	float elo = 2;
+	double elo = 2;
 }
 
 message PlayerMatch {
