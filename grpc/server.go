@@ -15,7 +15,7 @@ type grpcServer struct {
 	pb.UnimplementedPoolServer
 }
 
-func NewGrpcServer(poolOpts ...elgo.PoolOpt) *grpcServer {
+func NewServer(poolOpts ...elgo.PoolOpt) *grpcServer {
 	return &grpcServer{
 		pool: elgo.NewPool(poolOpts...),
 	}
