@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: grpc/schema/pool.proto
+// source: grpc/pb/pool.proto
 
-package schema
+package pb
 
 import (
 	context "context"
@@ -237,5 +237,5 @@ var Pool_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "grpc/schema/pool.proto",
+	Metadata: "grpc/pb/pool.proto",
 }

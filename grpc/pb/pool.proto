@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/ravsii/elgo/grpc/schema";
+option go_package = "github.com/ravsii/elgo/grpc/pb";
 package pool;
 
 message Empty {}

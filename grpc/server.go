@@ -4,15 +4,15 @@ import (
 	context "context"
 
 	"github.com/ravsii/elgo"
-	schema "github.com/ravsii/elgo/grpc/schema"
+	"github.com/ravsii/elgo/grpc/pb"
 )
 
 // ensuring we've implemented our server correctly
-var _ schema.PoolServer = (*grpcServer)(nil)
+var _ pb.PoolServer = (*grpcServer)(nil)
 
 type grpcServer struct {
 	pool *elgo.Pool
-	schema.UnimplementedPoolServer
+	pb.UnimplementedPoolServer
 }
 
 func NewGrpcServer(poolOpts ...elgo.PoolOpt) *grpcServer {
@@ -21,37 +21,37 @@ func NewGrpcServer(poolOpts ...elgo.PoolOpt) *grpcServer {
 	}
 }
 
-// Add implements schema.PoolServer
-func (s *grpcServer) Add(ctx context.Context, player *schema.Player) (*schema.Empty, error) {
+// Add implements pb.PoolServer
+func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
-		return &schema.Empty{}, nil
+		return &pb.Empty{}, nil
 	default:
 		if err := s.pool.AddPlayer(player); err != nil {
-			return &schema.Empty{}, err
+			return &pb.Empty{}, err
 		}
-		return &schema.Empty{}, nil
+		return &pb.Empty{}, nil
 	}
 }
 
-// Match implements schema.PoolServer
-func (s *grpcServer) Match(_ *schema.Empty, matches schema.Pool_MatchServer) error {
+// Match implements pb.PoolServer
+func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 	for {
 		select {
 		case <-matches.Context().Done():
 			return nil
 		case m := <-s.pool.Matches():
-			grpcMatch := &schema.PlayerMatch{
-				P1: &schema.Player{Id: m.Player1.Identify()},
-				P2: &schema.Player{Id: m.Player2.Identify()},
+			grpcMatch := &pb.PlayerMatch{
+				P1: &pb.Player{Id: m.Player1.Identify()},
+				P2: &pb.Player{Id: m.Player2.Identify()},
 			}
 			return matches.Send(grpcMatch)
 		}
 	}
 }
 
-// Remove implements schema.PoolServer
-func (s *grpcServer) Remove(ctx context.Context, player *schema.Player) (*schema.Empty, error) {
+// Remove implements pb.PoolServer
+func (s *grpcServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
@@ -61,13 +61,13 @@ func (s *grpcServer) Remove(ctx context.Context, player *schema.Player) (*schema
 	}
 }
 
-// Size implements schema.PoolServer
-func (s *grpcServer) Size(ctx context.Context, _ *schema.Empty) (*schema.SizeResponse, error) {
+// Size implements pb.PoolServer
+func (s *grpcServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, error) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
 	default:
-		return &schema.SizeResponse{
+		return &pb.SizeResponse{
 			Size: int32(s.pool.Size()),
 		}, nil
 	}

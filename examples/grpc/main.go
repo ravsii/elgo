@@ -5,7 +5,7 @@ import (
 	"net"
 
 	elgo_grpc "github.com/ravsii/elgo/grpc"
-	elgo_schema "github.com/ravsii/elgo/grpc/schema"
+	pb "github.com/ravsii/elgo/grpc/pb"
 	"google.golang.org/grpc"
 )
 
@@ -16,8 +16,7 @@ func main() {
 	}
 
 	grpcSrv := grpc.NewServer()
-	elgoGrpc := elgo_grpc.NewGrpcServer()
-	elgo_schema.RegisterPoolServer(grpcSrv, elgoGrpc)
+	pb.RegisterPoolServer(grpcSrv, elgo_grpc.NewGrpcServer())
 	if err := grpcSrv.Serve(srv); err != nil {
 		log.Fatalln(err)
 	}

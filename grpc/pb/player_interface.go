@@ -1,4 +1,4 @@
-package schema
+package pb
 
 import "github.com/ravsii/elgo"
 
