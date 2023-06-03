@@ -13,9 +13,8 @@ import (
 )
 
 type grpcClient struct {
-	conn    *grpc.ClientConn
-	client  pb.PoolClient
-	matches pb.Pool_MatchClient
+	conn   *grpc.ClientConn
+	client pb.PoolClient
 }
 
 // NewClient returns a new client, a closeFunc for closing the connection
@@ -29,15 +28,9 @@ func NewClient(addr string, opts ...grpc.DialOption) (*grpcClient, error) {
 
 	pbClient := pb.NewPoolClient(conn)
 
-	matchClient, err := pbClient.Match(context.Background(), &pb.Empty{})
-	if err != nil {
-		return nil, fmt.Errorf("match client: %w", err)
-	}
-
 	return &grpcClient{
-		conn:    conn,
-		client:  pbClient,
-		matches: matchClient,
+		conn:   conn,
+		client: pbClient,
 	}, nil
 }
 
@@ -60,26 +53,35 @@ func (c *grpcClient) Add(ctx context.Context, players ...elgo.Player) error {
 }
 
 // RecieveMatch waits for a match to be created and returns it. This is a
-// blocking operation and ctx.Done() could be used to about it.
+// blocking operation and ctx.Done() or other contexts could be used to
+// about it.
+//
+// ErrNoMatchFound is returned in case of timeouts.
 //
 // Note: unfortunately, it's hard to implement it with channels, because
 // some matches could be lost on the process, i.e. if server randomly shuts
 // down. So use a simple infinite for loop here.
 func (c *grpcClient) RecieveMatch(ctx context.Context) (*elgo.Match, error) {
-	select {
-	case <-ctx.Done():
-		return nil, nil
-	default:
-		match, err := c.matches.Recv()
-		if err != nil {
-			return nil, err
+	matchClient, err := c.client.Match(ctx, &pb.Empty{})
+	if err != nil {
+		return nil, fmt.Errorf("match client: %w", err)
+	}
+	defer matchClient.CloseSend()
+
+	match, err := matchClient.Recv()
+	if err != nil {
+		errStatus := status.Convert(err)
+		if errStatus.Code() == codes.DeadlineExceeded {
+			return nil, elgo.ErrNoMatchFound
 		}
 
-		return &elgo.Match{
-			Player1: match.P1,
-			Player2: match.P2,
-		}, nil
+		return nil, fmt.Errorf("match recv: %w", err)
 	}
+
+	return &elgo.Match{
+		Player1: match.P1,
+		Player2: match.P2,
+	}, nil
 }
 
 // Remove removes a player from the queue.
@@ -95,5 +97,9 @@ func (c *grpcClient) Size(ctx context.Context) (int, error) {
 }
 
 func (c *grpcClient) Close() error {
-	return c.conn.Close()
+	if err := c.conn.Close(); err != nil {
+		return fmt.Errorf("client conn close: %w", err)
+	}
+
+	return nil
 }

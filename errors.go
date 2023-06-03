@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrAlreadyExists = errors.New("player already exists")
-	ErrPoolClosed    = errors.New("pool is closed")
+	ErrPoolClosed   = errors.New("pool is closed")
+	ErrNoMatchFound = errors.New("no match found")
 )
 
 type PlayerAlreadyExistsError struct {

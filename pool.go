@@ -74,7 +74,7 @@ func (p *Pool) AddPlayer(players ...Player) error {
 	for _, player := range players {
 		id := player.Identify()
 		if _, ok := p.players[id]; ok {
-			return ErrAlreadyExists
+			return NewAlreadyExistsErr(player)
 		}
 
 		p.players[id] = &poolPlayer{

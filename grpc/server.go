@@ -17,8 +17,12 @@ type grpcServer struct {
 }
 
 func NewServer(poolOpts ...elgo.PoolOpt) *grpcServer {
+	pool := elgo.NewPool(poolOpts...)
+
+	go pool.Run()
+
 	return &grpcServer{
-		pool: elgo.NewPool(poolOpts...),
+		pool: pool,
 	}
 }
 
@@ -29,7 +33,7 @@ func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, err
 		return &pb.Empty{}, nil
 	default:
 		if err := s.pool.AddPlayer(player); err != nil {
-			if errors.Is(err, elgo.ErrAlreadyExists) {
+			if errors.Is(err, &elgo.PlayerAlreadyExistsError{}) {
 				return &pb.Empty{}, NewAlreadyExistsErr(player)
 			}
 			return &pb.Empty{}, NewCantAddErr(player)
@@ -80,4 +84,8 @@ func (s *grpcServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, e
 			Size: int32(s.pool.Size()),
 		}, nil
 	}
+}
+
+func (s *grpcServer) Close() map[string]elgo.Player {
+	return s.pool.Close()
 }
