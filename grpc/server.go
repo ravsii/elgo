@@ -28,15 +28,26 @@ func (s *grpcServer) Add(ctx context.Context, player *schema.Player) (*schema.Em
 		return &schema.Empty{}, nil
 	default:
 		if err := s.pool.AddPlayer(player); err != nil {
-			return nil, err
+			return &schema.Empty{}, err
 		}
-		return nil, nil
+		return &schema.Empty{}, nil
 	}
 }
 
 // Match implements schema.PoolServer
 func (s *grpcServer) Match(_ *schema.Empty, matches schema.Pool_MatchServer) error {
-	panic("unimplemented")
+	for {
+		select {
+		case <-matches.Context().Done():
+			return nil
+		case m := <-s.pool.Matches():
+			grpcMatch := &schema.PlayerMatch{
+				P1: &schema.Player{Id: m.Player1.Identify()},
+				P2: &schema.Player{Id: m.Player2.Identify()},
+			}
+			return matches.Send(grpcMatch)
+		}
+	}
 }
 
 // Remove implements schema.PoolServer
