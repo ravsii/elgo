@@ -113,7 +113,7 @@ func (s *Server) handleEvent(readWriter *ReadWriter, event Event, args string) {
 				return
 			}
 
-			players = append(players, &socketRatingPlayer{ID: id, ELO: r})
+			players = append(players, &elgo.BaseRatingPlayer{ID: id, ELO: r})
 		}
 
 		if err := s.pool.AddPlayer(players...); err != nil {

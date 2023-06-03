@@ -133,8 +133,8 @@ func (c *Client) handleEvent(event Event, args string) {
 		}
 
 		c.matchCh <- &elgo.Match{
-			Player1: &socketPlayer{ID: p1Ident},
-			Player2: &socketPlayer{ID: p2Ident},
+			Player1: &elgo.BasePlayer{ID: p1Ident},
+			Player2: &elgo.BasePlayer{ID: p2Ident},
 		}
 	case Size:
 		s := strings.TrimSpace(args)
