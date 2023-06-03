@@ -7,7 +7,9 @@ import (
 	"github.com/ravsii/elgo"
 	"github.com/ravsii/elgo/grpc/pb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type grpcClient struct {
@@ -40,11 +42,16 @@ func NewClient(addr string, opts ...grpc.DialOption) (*grpcClient, error) {
 }
 
 // Add adds a player to the queue.
-// If a player already in the queue, err is returned.
+// If a player already in the queue, elgo.PlayerAlreadyExistsError is returned.
 func (c *grpcClient) Add(ctx context.Context, players ...elgo.Player) error {
 	for _, player := range players {
 		_, err := c.client.Add(ctx, &pb.Player{Id: player.Identify(), Elo: player.Rating()})
 		if err != nil {
+			errStatus := status.Convert(err)
+			if errStatus.Code() == codes.AlreadyExists {
+				return elgo.NewAlreadyExistsErr(player)
+			}
+
 			return err
 		}
 	}

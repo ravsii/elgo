@@ -1,7 +1,8 @@
 package grpc
 
 import (
-	context "context"
+	"context"
+	"errors"
 
 	"github.com/ravsii/elgo"
 	"github.com/ravsii/elgo/grpc/pb"
@@ -21,14 +22,17 @@ func NewServer(poolOpts ...elgo.PoolOpt) *grpcServer {
 	}
 }
 
-// Add implements pb.PoolServer
+// Add implements pb.PoolServer.
 func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
 		return &pb.Empty{}, nil
 	default:
 		if err := s.pool.AddPlayer(player); err != nil {
-			return &pb.Empty{}, err
+			if errors.Is(err, elgo.ErrAlreadyExists) {
+				return &pb.Empty{}, NewAlreadyExistsErr(player)
+			}
+			return &pb.Empty{}, NewCantAddErr(player)
 		}
 		return &pb.Empty{}, nil
 	}
@@ -45,7 +49,12 @@ func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 				P1: &pb.Player{Id: m.Player1.Identify()},
 				P2: &pb.Player{Id: m.Player2.Identify()},
 			}
-			return matches.Send(grpcMatch)
+			err := matches.Send(grpcMatch)
+			if err != nil {
+				return errors.Join(ErrCreateMatch, err)
+			}
+
+			return nil
 		}
 	}
 }
@@ -57,8 +66,8 @@ func (s *grpcServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, 
 		return nil, nil
 	default:
 		s.pool.Remove(player)
-		return nil, nil
 	}
+	return nil, nil
 }
 
 // Size implements pb.PoolServer

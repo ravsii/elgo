@@ -32,12 +32,17 @@ func main() {
 	}
 	defer client.Close()
 
-	player := elgo.BaseRatingPlayer{
+	p1 := elgo.BaseRatingPlayer{
 		ID:  "1",
 		ELO: 1,
 	}
 
-	err = client.Add(context.Background(), &player, &player)
+	p2 := elgo.BaseRatingPlayer{
+		ID:  "2",
+		ELO: 2,
+	}
+
+	err = client.Add(context.Background(), &p1, &p2)
 	if err != nil {
 		log.Fatalln(err)
 	}

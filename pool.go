@@ -1,15 +1,9 @@
 package elgo
 
 import (
-	"errors"
 	"math"
 	"sync"
 	"time"
-)
-
-var (
-	ErrAlreadyExists = errors.New("player already exists")
-	ErrPoolClosed    = errors.New("pool is closed")
 )
 
 type poolPlayer struct {
