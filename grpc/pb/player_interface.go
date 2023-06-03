@@ -11,5 +11,5 @@ func (p *Player) Identify() string {
 }
 
 func (p *Player) Rating() float64 {
-	return float64(p.GetElo())
+	return p.GetElo()
 }

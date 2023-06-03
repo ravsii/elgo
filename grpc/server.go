@@ -8,7 +8,7 @@ import (
 	"github.com/ravsii/elgo/grpc/pb"
 )
 
-// ensuring we've implemented our server correctly
+// ensuring we've implemented our server correctly.
 var _ pb.PoolServer = (*grpcServer)(nil)
 
 type grpcServer struct {
@@ -42,7 +42,7 @@ func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, err
 	}
 }
 
-// Match implements pb.PoolServer
+// Match implements pb.PoolServer.
 func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 	for {
 		select {
@@ -63,22 +63,21 @@ func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 	}
 }
 
-// Remove implements pb.PoolServer
+// Remove implements pb.PoolServer.
 func (s *grpcServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
-		return nil, nil
 	default:
 		s.pool.Remove(player)
 	}
-	return nil, nil
+	return &pb.Empty{}, nil
 }
 
-// Size implements pb.PoolServer
+// Size implements pb.PoolServer.
 func (s *grpcServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, error) {
 	select {
 	case <-ctx.Done():
-		return nil, nil
+		return &pb.SizeResponse{Size: 0}, nil
 	default:
 		return &pb.SizeResponse{
 			Size: int32(s.pool.Size()),

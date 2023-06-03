@@ -33,3 +33,4 @@ linters:
     - varcheck
     - varnamelen
     - wsl
+    - wrapcheck

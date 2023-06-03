@@ -17,7 +17,7 @@ type grpcClient struct {
 	client pb.PoolClient
 }
 
-// NewClient returns a new client, a closeFunc for closing the connection
+// NewClient returns a new client, a closeFunc for closing the connection.
 func NewClient(addr string, opts ...grpc.DialOption) (*grpcClient, error) {
 	credentials := insecure.NewCredentials()
 	opts = append(opts, grpc.WithTransportCredentials(credentials))
@@ -61,12 +61,16 @@ func (c *grpcClient) Add(ctx context.Context, players ...elgo.Player) error {
 // Note: unfortunately, it's hard to implement it with channels, because
 // some matches could be lost on the process, i.e. if server randomly shuts
 // down. So use a simple infinite for loop here.
-func (c *grpcClient) RecieveMatch(ctx context.Context) (*elgo.Match, error) {
+func (c *grpcClient) RecieveMatch(ctx context.Context) (_ *elgo.Match, err error) {
 	matchClient, err := c.client.Match(ctx, &pb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("match client: %w", err)
 	}
-	defer matchClient.CloseSend()
+	defer func() {
+		if err == nil {
+			err = matchClient.CloseSend()
+		}
+	}()
 
 	match, err := matchClient.Recv()
 	if err != nil {
