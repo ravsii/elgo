@@ -135,8 +135,9 @@ func TestErrAlreadyExists(t *testing.T) {
 
 	t.Cleanup(func() { pool.Close() })
 
-	if err == nil || !errors.Is(err, elgo.ErrAlreadyExists) {
-		t.Errorf("expected error %s, got %s", elgo.ErrAlreadyExists, err)
+	var existsErr *elgo.PlayerAlreadyExistsError
+	if err == nil || !errors.As(err, &existsErr) {
+		t.Errorf("expected error %s, got %s", elgo.NewAlreadyExistsErr(player), err)
 	}
 }
 

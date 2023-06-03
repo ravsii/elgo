@@ -1,15 +1,9 @@
 package elgo
 
 import (
-	"errors"
 	"math"
 	"sync"
 	"time"
-)
-
-var (
-	ErrAlreadyExists = errors.New("player already exists")
-	ErrPoolClosed    = errors.New("pool is closed")
 )
 
 type poolPlayer struct {
@@ -80,7 +74,7 @@ func (p *Pool) AddPlayer(players ...Player) error {
 	for _, player := range players {
 		id := player.Identify()
 		if _, ok := p.players[id]; ok {
-			return ErrAlreadyExists
+			return NewAlreadyExistsErr(player)
 		}
 
 		p.players[id] = &poolPlayer{
