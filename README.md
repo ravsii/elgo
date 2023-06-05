@@ -10,19 +10,4 @@ The main idea is to implement some sort of a basic matchmaking tool for 3rd part
 
 ## How it works?
 
-TLDR version:
-
 ![How it works diagram](./docs/d2/pool.svg)
-
-## TODO list
-
-- [ ] Add example explanation
-- [ ] Add d2lang diagrams
-- [ ] Add a git tag/version
-- [ ] Add other pool types (non-elo based)
-  - [ ] LIFO (Stack)
-  - [ ] FIFO (Queue)
-  - [ ] Other ...?
-- [ ] Add an option to use this as a service
-  - gRPC (does it even support channel-like streaming data type?)
-  - as a docker container with sockets/grpc
