@@ -22,7 +22,7 @@ func main() {
 	defer srv.Close()
 
 	grpcSrv := grpc.NewServer()
-	elgoSrv := elgo_grpc.NewServer()
+	elgoSrv := elgo_grpc.NewPoolServer()
 	defer elgoSrv.Close()
 	pb.RegisterPoolServer(grpcSrv, elgoSrv)
 	go func() {

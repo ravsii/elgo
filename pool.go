@@ -18,6 +18,8 @@ type Match struct {
 	Player2 Identifier
 }
 
+type Players map[string]Player
+
 // Pool is a main struct for matchmaking pool.
 // Use NewPool(options...) to create a new pool.
 type Pool struct {
@@ -102,7 +104,7 @@ func (p *Pool) Size() int {
 
 // Close closes the pool and return players that are still in the queue.
 // It's safe to call Close() multiple times, but in that case nil will be returned.
-func (p *Pool) Close() map[string]Player {
+func (p *Pool) Close() Players {
 	p.playersLock.Lock()
 	defer p.playersLock.Unlock()
 
