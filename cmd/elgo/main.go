@@ -27,14 +27,14 @@ var (
 	serverType string = "grpc"
 )
 
-// Server flags
+// Server flags.
 var (
 	playerRetry       time.Duration = time.Second
 	globalRetry       time.Duration = time.Second
 	increaseBordersBy float64       = 100
 )
 
-// Client flags (TODO):
+// Client flags (TODO).
 var ()
 
 func main() {
@@ -47,13 +47,20 @@ func main() {
 	flaggy.AttachSubcommand(serverCommand, 1)
 	serverCommand.Description = "Server-side related commands"
 
-	serverCommand.String(&network, "l", "listen", "type of network to listen (tcp|udp)")
-	serverCommand.String(&addr, "a", "addr", "host/address to accept connections at")
-	serverCommand.UInt16(&port, "p", "port", "port to accept connections at (1 to 65535)")
-	serverCommand.String(&serverType, "t", "type", "type of server (grpc|socket)")
-	serverCommand.Float64(&increaseBordersBy, "i", "increase-borders", "amount of ELO points to increase player's search range, if no match was found.")
-	serverCommand.Duration(&globalRetry, "gr", "global-retry", "global retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
-	serverCommand.Duration(&playerRetry, "pr", "player-retry", "player retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
+	serverCommand.String(&network, "n", "network",
+		"type of network to listen (tcp|udp)")
+	serverCommand.String(&addr, "a", "addr",
+		"host/address to accept connections at")
+	serverCommand.UInt16(&port, "p", "port",
+		"port to accept connections at (1 to 65535)")
+	serverCommand.String(&serverType, "t", "type",
+		"type of server (grpc|socket)")
+	serverCommand.Float64(&increaseBordersBy, "i", "increase-borders",
+		"amount of ELO points to increase player's search range, if no match was found.")
+	serverCommand.Duration(&globalRetry, "gr", "global-retry",
+		"global retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
+	serverCommand.Duration(&playerRetry, "pr", "player-retry",
+		"player retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
 
 	clientCommand := flaggy.NewSubcommand("client")
 	clientCommand.Description = "NOT IMPLEMENTED (only usable as a lib now)"
@@ -116,7 +123,7 @@ func startGrpcServer(pool *elgo.Pool) {
 		<-c
 		server.Close()
 
-		fmt.Println("\nShutting down the server...")
+		log.Println("\nShutting down the server...")
 
 		if players := pool.Close(); len(players) > 0 {
 			plrs := make([]string, 0, len(players))
@@ -124,13 +131,13 @@ func startGrpcServer(pool *elgo.Pool) {
 				plrs = append(plrs, p)
 			}
 
-			fmt.Println("Players were dropped from the queue:", strings.Join(plrs, ", "))
+			log.Println("Players were dropped from the queue:", strings.Join(plrs, ", "))
 		}
 
 		os.Exit(0)
 	}()
 
-	fmt.Println("Starting the server...")
+	log.Println("Starting the server...")
 	if err := server.Listen(); err != nil {
 		log.Fatalf("listen: %s", err)
 	}
@@ -149,7 +156,7 @@ func startSockerServer(pool *elgo.Pool) {
 			log.Fatalln("socket server close:", err)
 		}
 
-		fmt.Println("\nShutting down the server...")
+		log.Println("\nShutting down the server...")
 
 		if players := pool.Close(); len(players) > 0 {
 			plrs := make([]string, 0, len(players))
@@ -157,13 +164,13 @@ func startSockerServer(pool *elgo.Pool) {
 				plrs = append(plrs, p)
 			}
 
-			fmt.Println("Players were dropped from the queue:", strings.Join(plrs, ", "))
+			log.Println("Players were dropped from the queue:", strings.Join(plrs, ", "))
 		}
 
 		os.Exit(0)
 	}()
 
-	fmt.Println("Starting the server...")
+	log.Println("Starting the server...")
 	srvAddr := fmt.Sprintf("%s:%d", addr, port)
 	if err := server.Listen(network, srvAddr); err != nil {
 		log.Fatalf("listen: %s", err)

@@ -35,7 +35,7 @@ func NewListener(network, address string, pool *PoolServer, opts ...grpc.ServerO
 
 	srv.conn, err = net.Listen(network, address)
 	if err != nil {
-		return nil, fmt.Errorf("net listen: %s", err)
+		return nil, fmt.Errorf("net listen: %w", err)
 	}
 
 	srv.grpcSrv = grpc.NewServer(opts...)
