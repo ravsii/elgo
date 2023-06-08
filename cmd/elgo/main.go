@@ -89,10 +89,13 @@ func serverUsed() {
 		elgo.WithIncreasePlayerBorderBy(increaseBordersBy),
 	)
 
+	go pool.Run()
+
 	switch serverType {
 	case "grpc":
 		startGrpcServer(pool)
-	case "socker":
+	case "socket":
+		startSockerServer(pool)
 	default:
 		log.Fatalf("%s not supported", serverType)
 	}
@@ -111,11 +114,11 @@ func startGrpcServer(pool *elgo.Pool) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		players := server.Close()
+		server.Close()
 
 		fmt.Println("\nShutting down the server...")
 
-		if len(players) > 0 {
+		if players := pool.Close(); len(players) > 0 {
 			plrs := make([]string, 0, len(players))
 			for p := range players {
 				plrs = append(plrs, p)
@@ -134,7 +137,6 @@ func startGrpcServer(pool *elgo.Pool) {
 }
 
 func startSockerServer(pool *elgo.Pool) {
-	srvAddr := fmt.Sprintf("%s:%d", addr, port)
 	server := socket.NewServer(pool)
 
 	// Add graceful shutdown listener
@@ -142,11 +144,14 @@ func startSockerServer(pool *elgo.Pool) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		players := server.Close()
+		err := server.Close()
+		if err != nil {
+			log.Fatalln("socket server close:", err)
+		}
 
 		fmt.Println("\nShutting down the server...")
 
-		if len(players) > 0 {
+		if players := pool.Close(); len(players) > 0 {
 			plrs := make([]string, 0, len(players))
 			for p := range players {
 				plrs = append(plrs, p)
@@ -159,7 +164,8 @@ func startSockerServer(pool *elgo.Pool) {
 	}()
 
 	fmt.Println("Starting the server...")
-	if err := server.Listen(); err != nil {
+	srvAddr := fmt.Sprintf("%s:%d", addr, port)
+	if err := server.Listen(network, srvAddr); err != nil {
 		log.Fatalf("listen: %s", err)
 	}
 }

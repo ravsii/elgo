@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	client, err := socket.NewClient(":3000")
+	client, err := socket.NewClient(":8080")
 	if err != nil {
 		log.Fatal("unable to connect to server:", err)
 	}
