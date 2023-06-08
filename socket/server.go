@@ -14,41 +14,50 @@ import (
 )
 
 type Server struct {
-	addr string
-	pool *elgo.Pool
+	pool     *elgo.Pool
+	listener net.Listener
 }
 
 // NewServer creates a server. Use
 //
-//	server.Listen()
+//	server.Listen(network, addr)
 //
 // to run it.
-func NewServer(listenAddr string, pool *elgo.Pool) *Server {
+func NewServer(pool *elgo.Pool) *Server {
 	return &Server{
-		addr: listenAddr,
 		pool: pool,
 	}
 }
 
-// Listen starts listening for connections. It is a blocking function.
+// Listen starts listening for connections. It is a blocking operation.
+//
+// If you want to perform a graceful shutdown, use s.Close()
 //
 // Returned error is always a non-nil error.
-func (s *Server) Listen() (err error) {
-	listen, err := net.Listen("tcp", s.addr)
+func (s *Server) Listen(network, addr string) error {
+	var err error
+	s.listener, err = net.Listen(network, addr)
 	if err != nil {
 		return fmt.Errorf("net listen: %w", err)
 	}
 
-	defer func() { err = listen.Close() }()
-
 	for {
-		conn, err := listen.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
 			return fmt.Errorf("accept connection: %w", err)
 		}
 
 		go s.handleConn(conn)
 	}
+}
+
+// Close only closes the underlying connection, the pool remains open.
+func (s *Server) Close() error {
+	if s.listener == nil {
+		return nil
+	}
+
+	return s.listener.Close()
 }
 
 func (s *Server) handleConn(conn net.Conn) {
