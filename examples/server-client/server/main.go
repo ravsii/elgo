@@ -18,6 +18,6 @@ func main() {
 
 	go pool.Run()
 
-	server := socket.NewServer(":3000", pool)
-	log.Fatal(server.Listen())
+	server := socket.NewServer(pool)
+	log.Fatal(server.Listen("tcp", ":8080"))
 }

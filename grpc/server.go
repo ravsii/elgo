@@ -3,31 +3,76 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 
 	"github.com/ravsii/elgo"
 	"github.com/ravsii/elgo/grpc/pb"
+	"google.golang.org/grpc"
 )
 
 // ensuring we've implemented our server correctly.
-var _ pb.PoolServer = (*grpcServer)(nil)
+var _ pb.PoolServer = (*PoolServer)(nil)
 
-type grpcServer struct {
+type PoolServer struct {
 	pool *elgo.Pool
 	pb.UnimplementedPoolServer
 }
 
-func NewServer(poolOpts ...elgo.PoolOpt) *grpcServer {
-	pool := elgo.NewPool(poolOpts...)
+type ListenServer struct {
+	conn    net.Listener
+	poolSrv *PoolServer
+	grpcSrv *grpc.Server
+}
 
-	go pool.Run()
+// NewListener will create a new grpc listener.
+// gRPC server implementation should be created beforehand.
+func NewListener(network, address string, pool *PoolServer, opts ...grpc.ServerOption) (*ListenServer, error) {
+	var (
+		srv ListenServer
+		err error
+	)
 
-	return &grpcServer{
+	srv.conn, err = net.Listen(network, address)
+	if err != nil {
+		return nil, fmt.Errorf("net listen: %w", err)
+	}
+
+	srv.grpcSrv = grpc.NewServer(opts...)
+	srv.poolSrv = pool
+	pb.RegisterPoolServer(srv.grpcSrv, srv.poolSrv)
+
+	return &srv, nil
+}
+
+// Listen will start listening for incoming commands.
+//
+// This is a blocking operation.
+func (s *ListenServer) Listen() error {
+	if err := s.grpcSrv.Serve(s.conn); err != nil {
+		return fmt.Errorf("grpc listen: %w", err)
+	}
+
+	return nil
+}
+
+// Close calls GracefulStop on grpc listener.
+func (s *ListenServer) Close() {
+	s.grpcSrv.GracefulStop()
+}
+
+// NewPoolServer returns a new pool grpc server, which simply implements
+// a grpc interface. You probably don't need this and should use [NewListener].
+//
+// This could be useful if you want to integrate it into your gRPC server.
+func NewPoolServer(pool *elgo.Pool) *PoolServer {
+	return &PoolServer{
 		pool: pool,
 	}
 }
 
 // Add implements pb.PoolServer.
-func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
+func (s *PoolServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
 		return &pb.Empty{}, nil
@@ -43,7 +88,7 @@ func (s *grpcServer) Add(ctx context.Context, player *pb.Player) (*pb.Empty, err
 }
 
 // Match implements pb.PoolServer.
-func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
+func (s *PoolServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 	for {
 		select {
 		case <-matches.Context().Done():
@@ -64,7 +109,7 @@ func (s *grpcServer) Match(_ *pb.Empty, matches pb.Pool_MatchServer) error {
 }
 
 // Remove implements pb.PoolServer.
-func (s *grpcServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
+func (s *PoolServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, error) {
 	select {
 	case <-ctx.Done():
 	default:
@@ -74,7 +119,7 @@ func (s *grpcServer) Remove(ctx context.Context, player *pb.Player) (*pb.Empty, 
 }
 
 // Size implements pb.PoolServer.
-func (s *grpcServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, error) {
+func (s *PoolServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, error) {
 	select {
 	case <-ctx.Done():
 		return &pb.SizeResponse{Size: 0}, nil
@@ -85,6 +130,6 @@ func (s *grpcServer) Size(ctx context.Context, _ *pb.Empty) (*pb.SizeResponse, e
 	}
 }
 
-func (s *grpcServer) Close() map[string]elgo.Player {
+func (s *PoolServer) Close() map[string]elgo.Player {
 	return s.pool.Close()
 }
