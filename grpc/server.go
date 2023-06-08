@@ -57,15 +57,10 @@ func (s *ListenServer) Listen() error {
 }
 
 // Close returns a map of players left in the queue at the time of closing.
-func (s *ListenServer) Close() (elgo.Players, error) {
-	if err := s.conn.Close(); err != nil {
-		return nil, fmt.Errorf("net listener close: %w", err)
-	}
-
-	players := s.poolSrv.Close()
+func (s *ListenServer) Close() elgo.Players {
 	s.grpcSrv.GracefulStop()
 
-	return players, nil
+	return s.poolSrv.Close()
 }
 
 // NewPoolServer returns a new pool grpc server, which simply implements

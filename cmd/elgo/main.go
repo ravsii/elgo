@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -62,13 +63,13 @@ func main() {
 
 	switch {
 	case serverCommand.Used:
-		handleStartServer()
+		serverUsed()
 	default:
 		exitErr("specify side: server or client")
 	}
 }
 
-func handleStartServer() {
+func serverUsed() {
 	if port == 0 {
 		exitErr("port should be in range from 1 to 65535")
 	}
@@ -94,13 +95,13 @@ func handleStartServer() {
 	}
 
 	// Add graceful shutdown listener
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGABRT)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		players, err := server.Close()
 		if err != nil {
-			exitErr(err.Error())
+			log.Fatalf("graceful server close: %s", err)
 		}
 
 		fmt.Println("\nShutting down the server...")
@@ -118,7 +119,9 @@ func handleStartServer() {
 	}()
 
 	fmt.Println("Starting the server...")
-	exitErr(server.Listen().Error())
+	if err := server.Listen(); err != nil {
+		log.Fatalf("listen: %s", err)
+	}
 }
 
 // exitErr shows a given errors and exits with the code 2.
