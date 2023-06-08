@@ -12,6 +12,7 @@ import (
 	"github.com/integrii/flaggy"
 	"github.com/ravsii/elgo"
 	"github.com/ravsii/elgo/grpc"
+	"github.com/ravsii/elgo/socket"
 )
 
 const version = "v0.0.1"
@@ -20,10 +21,10 @@ const version = "v0.0.1"
 // It's not possible to use both sides in one instance,
 // so it's safe to reuse them.
 var (
-	addr   string = ""
-	port   uint16 = 8080
-	listen string = "tcp"
-	typ    string = "grpc"
+	addr       string = ""
+	port       uint16 = 8080
+	network    string = "tcp"
+	serverType string = "grpc"
 )
 
 // Server flags
@@ -46,10 +47,10 @@ func main() {
 	flaggy.AttachSubcommand(serverCommand, 1)
 	serverCommand.Description = "Server-side related commands"
 
-	serverCommand.String(&listen, "l", "listen", "type of network to listen (tcp|udp)")
+	serverCommand.String(&network, "l", "listen", "type of network to listen (tcp|udp)")
 	serverCommand.String(&addr, "a", "addr", "host/address to accept connections at")
 	serverCommand.UInt16(&port, "p", "port", "port to accept connections at (1 to 65535)")
-	serverCommand.String(&typ, "t", "type", "type of server (grpc|socket)")
+	serverCommand.String(&serverType, "t", "type", "type of server (grpc|socket)")
 	serverCommand.Float64(&increaseBordersBy, "i", "increase-borders", "amount of ELO points to increase player's search range, if no match was found.")
 	serverCommand.Duration(&globalRetry, "gr", "global-retry", "global retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
 	serverCommand.Duration(&playerRetry, "pr", "player-retry", "player retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")
@@ -74,22 +75,33 @@ func serverUsed() {
 		exitErr("port should be in range from 1 to 65535")
 	}
 
-	if typ != "grpc" && typ != "socket" {
-		exitErr("invalid server type: %s. (grpc|socket)", typ)
+	if network != "tcp" && network != "udp" {
+		exitErr("invalid listener type: %s. (tcp|udp)", serverType)
 	}
 
-	if listen != "tcp" && listen != "udp" {
-		exitErr("invalid listener type: %s. (tcp|udp)", typ)
+	if serverType != "grpc" && serverType != "socket" {
+		exitErr("invalid server type: %s. (grpc|socket)", serverType)
 	}
 
-	poolServer := grpc.NewPoolServer(
+	pool := elgo.NewPool(
 		elgo.WithPlayerRetryInterval(playerRetry),
 		elgo.WithGlobalRetryInterval(globalRetry),
 		elgo.WithIncreasePlayerBorderBy(increaseBordersBy),
 	)
 
-	addr := fmt.Sprintf("%s:%d", addr, port)
-	server, err := grpc.NewListener(listen, addr, poolServer)
+	switch serverType {
+	case "grpc":
+		startGrpcServer(pool)
+	case "socker":
+	default:
+		log.Fatalf("%s not supported", serverType)
+	}
+}
+
+func startGrpcServer(pool *elgo.Pool) {
+	srvAddr := fmt.Sprintf("%s:%d", addr, port)
+	grpcPool := grpc.NewPoolServer(pool)
+	server, err := grpc.NewListener(network, srvAddr, grpcPool)
 	if err != nil {
 		exitErr(err.Error())
 	}
@@ -99,10 +111,38 @@ func serverUsed() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		players, err := server.Close()
-		if err != nil {
-			log.Fatalf("graceful server close: %s", err)
+		players := server.Close()
+
+		fmt.Println("\nShutting down the server...")
+
+		if len(players) > 0 {
+			plrs := make([]string, 0, len(players))
+			for p := range players {
+				plrs = append(plrs, p)
+			}
+
+			fmt.Println("Players were dropped from the queue:", strings.Join(plrs, ", "))
 		}
+
+		os.Exit(0)
+	}()
+
+	fmt.Println("Starting the server...")
+	if err := server.Listen(); err != nil {
+		log.Fatalf("listen: %s", err)
+	}
+}
+
+func startSockerServer(pool *elgo.Pool) {
+	srvAddr := fmt.Sprintf("%s:%d", addr, port)
+	server := socket.NewServer(pool)
+
+	// Add graceful shutdown listener
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		players := server.Close()
 
 		fmt.Println("\nShutting down the server...")
 

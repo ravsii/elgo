@@ -64,12 +64,10 @@ func (s *ListenServer) Close() elgo.Players {
 }
 
 // NewPoolServer returns a new pool grpc server, which simply implements
-// a grpc interface. If you need a server with listener, use [NewListener]
-func NewPoolServer(poolOpts ...elgo.PoolOpt) *PoolServer {
-	pool := elgo.NewPool(poolOpts...)
-
-	go pool.Run()
-
+// a grpc interface. You probably don't need this and should use [NewListener].
+//
+// This could be useful if you want to integrate it into your gRPC server.
+func NewPoolServer(pool *elgo.Pool) *PoolServer {
 	return &PoolServer{
 		pool: pool,
 	}
