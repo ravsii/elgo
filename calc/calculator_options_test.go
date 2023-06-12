@@ -1,11 +1,11 @@
-package elgo
+package calc
 
 import "testing"
 
 func TestWithoutKFactors(t *testing.T) {
 	t.Parallel()
 
-	if calc := NewCalc(10); calc.k != 10 {
+	if calc := New(10); calc.k != 10 {
 		t.Errorf("NewCalc() k = %f, got %f", 10., calc.k)
 	}
 }
@@ -68,7 +68,7 @@ func TestWithKFactor(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			calc := NewCalc(tt.k, tt.funcs...)
+			calc := New(tt.k, tt.funcs...)
 			if !factorsEqual(calc.kFactors, tt.want) {
 				t.Errorf("factors do not match: want %v, got %v", tt.want, calc.kFactors)
 			}
