@@ -13,18 +13,20 @@ linters:
   enable-all: true
   disable:
     - deadcode
+    - depguard
     - dupl
     - exhaustive
     - exhaustivestruct
     - exhaustruct
     - funlen
+    - gochecknoglobals
     - golint
     - gomnd
-    - gochecknoglobals
     - ifshort
     - interfacer
     - maligned
     - nlreturn
+    - nonamedreturns
     - nosnakecase
     - revive
     - scopelint
@@ -33,5 +35,5 @@ linters:
     - testpackage
     - varcheck
     - varnamelen
-    - wsl
     - wrapcheck
+    - wsl
