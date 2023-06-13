@@ -40,5 +40,4 @@ jobs:
       - uses: rhysd/changelog-from-release/action@v3
         with:
           file: CHANGELOG.md
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          pull_request: true
+          github_token: ${{ secrets.PAT }}
