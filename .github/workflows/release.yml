@@ -12,10 +12,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Get branch name
+        id: extract_branch
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Update CHANGELOG
         id: changelog
@@ -36,3 +41,4 @@ jobs:
         with:
           file: CHANGELOG.md
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request: true
