@@ -12,15 +12,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Get branch name
-        id: extract_branch
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ steps.extract_branch.outputs.branch }}
+          ref: main
 
       - name: Update CHANGELOG
         id: changelog
@@ -40,4 +35,3 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           push_options: '--force'
-          create_branch: true
