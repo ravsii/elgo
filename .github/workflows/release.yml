@@ -3,28 +3,29 @@ name: Create Release
 on:
   push:
     tags:
-      - '*'
+      - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
-  create-release:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create changelog text
+      - name: Update CHANGELOG
         id: changelog
-        uses: loopwerk/tag-changelog@v1
+        uses: requarks/changelog-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          exclude_types: other,doc,chore
+          token: ${{ github.token }}
+          tag: ${{ github.ref_name }}
 
-      - name: Create release
-        uses: actions/create-release@v1.1.4
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
           body: ${{ steps.changelog.outputs.changes }}
