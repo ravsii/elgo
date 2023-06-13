@@ -37,7 +37,6 @@ jobs:
         with:
           body: ${{ steps.changelog.outputs.changes }}
 
-      - uses: rhysd/changelog-from-release/action@v3
+      - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          file: CHANGELOG.md
-          github_token: ${{ secrets.PAT }}
+          push_options: '--force'
