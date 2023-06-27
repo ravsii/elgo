@@ -3,10 +3,13 @@ package socket
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ravsii/elgo"
@@ -106,6 +109,24 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// In this function we check that the error occurred is about server disconnection or not
+// first check that error is about network operation or not
+// second we check that it is about syscallErrors or not
+// and at the end we check is it specifically ECONNRESET or not if it is, then it is a server disconnection
+func isConnectionResetError(err error) bool {
+	netErr, ok := err.(*net.OpError)
+	if ok {
+		syscallErr, ok := netErr.Err.(*os.SyscallError)
+		if ok {
+			errno, ok := syscallErr.Err.(syscall.Errno)
+			if ok && errno == syscall.ECONNRESET {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (c *Client) listen() {
 	for {
 		select {
@@ -113,11 +134,18 @@ func (c *Client) listen() {
 			return
 		default:
 			event, args, err := c.readWriter.Read()
+			// If an error occurred when reading data, entered the if block
 			if err != nil {
+				// if each one of these conditions set true we will break the for and stop the client
+				if isConnectionResetError(err) || strings.ContainsAny(err.Error(), "closed") ||
+					err == io.EOF || strings.ContainsAny(err.Error(), "reset") || strings.ContainsAny(err.Error(), "EOF") {
+					log.Println("server disconnected.")
+					return
+				}
+				// but if none of them set true, it means server is still connected and there is a problem in readwrite buffer
 				log.Println("err while read: ", err)
 				continue
 			}
-
 			go c.handleEvent(event, args)
 		}
 	}

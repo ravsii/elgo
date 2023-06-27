@@ -1,8 +1,11 @@
 package socket
 
 import (
+	"io"
 	"net"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewClient(t *testing.T) {
@@ -54,5 +57,24 @@ func TestNewClientFail(t *testing.T) {
 
 	if _, err := NewClient("random bad ip"); err == nil {
 		t.Fatalf("expected error, got nothing")
+	}
+}
+
+func TestDisconnectServer(t *testing.T) {
+	t.Parallel()
+	// start the server in server-client/server/main.go
+	client, err := NewClient(":8080")
+	if err != nil {
+		t.Fatalf("NewClient failed: %s", err)
+	}
+	// stop the server in server-client/server/main.go
+	time.Sleep(7 * time.Second)
+	t.Log(client.readWriter)
+	_, _, err = client.readWriter.Read()
+	if err != nil {
+		if isConnectionResetError(err) || strings.ContainsAny(err.Error(), "closed") ||
+			err == io.EOF || strings.ContainsAny(err.Error(), "reset") || strings.ContainsAny(err.Error(), "EOF") {
+			t.Log("server disconnected.")
+		}
 	}
 }

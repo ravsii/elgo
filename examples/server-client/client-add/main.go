@@ -43,5 +43,5 @@ func main() {
 		log.Println(i, "match", match.Player1.Identify(), match.Player2.Identify())
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 }

@@ -2,7 +2,6 @@ package socket
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -61,7 +60,12 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) handleConn(conn net.Conn) {
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
 
 	readWriter := newReadWriter(conn)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -70,11 +74,22 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	for {
 		event, args, err := readWriter.Read()
+		// if there is an error occurred in read or write data we entered the if block
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			// this condition is not enough and like client-side code you should check all conditions
+
+			//if errors.Is(err, io.EOF) {
+			//break
+			//}
+
+			// if each one of these conditions set true we just break this loop
+			if isConnectionResetError(err) || strings.ContainsAny(err.Error(), "closed") ||
+				err == io.EOF || strings.ContainsAny(err.Error(), "reset") || strings.ContainsAny(err.Error(), "EOF") {
+				log.Println("Client disconnected.")
 				break
 			}
 
+			// else we just continue because the problem is about readwrite buffer
 			log.Println("parse: ", err)
 			continue
 		}
