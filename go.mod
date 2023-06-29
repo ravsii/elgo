@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/integrii/flaggy v1.5.2
-	google.golang.org/grpc v1.56.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/grpc v1.56.1
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
