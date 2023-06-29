@@ -10,9 +10,12 @@ import (
 
 func main() {
 	pool := elgo.NewPool()
-	pool.AddPlayer(
+	err := pool.AddPlayer(
 		player.New("Example 1", 0),
 		player.New("Example 2", 0))
+	if err != nil {
+		return
+	}
 
 	defer pool.Close()
 
