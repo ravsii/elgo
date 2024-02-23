@@ -55,7 +55,7 @@ func main() {
 		"port to accept connections at (1 to 65535)")
 	serverCommand.String(&serverType, "t", "type",
 		"type of server (grpc|socket)")
-	serverCommand.Float64(&increaseBordersBy, "i", "increase-borders",
+	serverCommand.Float64(&increaseBordersBy, "i", "increase-borders-by",
 		"amount of ELO points to increase player's search range, if no match was found.")
 	serverCommand.Duration(&globalRetry, "gr", "global-retry",
 		"global retry interval, duration reference: https://pkg.go.dev/time#ParseDuration")

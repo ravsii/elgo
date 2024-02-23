@@ -7,9 +7,9 @@ import (
 )
 
 type poolPlayer struct {
+	retryAt       time.Time
 	player        Player
 	ratingBorders float64
-	retryAt       time.Time
 }
 
 // Match is a struct that holds 2 players who should be matched.
@@ -24,8 +24,8 @@ type Players map[string]Player
 // Use NewPool(options...) to create a new pool.
 type Pool struct {
 	players     map[string]*poolPlayer
-	playersLock sync.RWMutex
 	matchCh     chan Match
+	playersLock sync.RWMutex
 
 	// playerRetryInterval holds a duration of how much time a player
 	// should wait before the next try if no match was found.

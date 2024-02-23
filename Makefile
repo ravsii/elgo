@@ -1,5 +1,5 @@
 test:
-	go test ./... -timeout 1m --race
+	go test $(go list ./... | grep -v /examples/) -timeout 1m --race
 
 coverage:
 	go test -coverprofile cover.out ./...

@@ -15,8 +15,8 @@ import (
 var _ pb.PoolServer = (*PoolServer)(nil)
 
 type PoolServer struct {
-	pool *elgo.Pool
 	pb.UnimplementedPoolServer
+	pool *elgo.Pool
 }
 
 type ListenServer struct {

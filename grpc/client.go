@@ -61,7 +61,7 @@ func (c *grpcClient) Add(ctx context.Context, players ...elgo.Player) error {
 // Note: unfortunately, it's hard to implement it with channels, because
 // some matches could be lost on the process, i.e. if server randomly shuts
 // down. So use a simple infinite for loop here.
-func (c *grpcClient) RecieveMatch(ctx context.Context) (_ *elgo.Match, err error) {
+func (c *grpcClient) RecieveMatch(ctx context.Context) (*elgo.Match, error) {
 	matchClient, err := c.client.Match(ctx, &pb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("match client: %w", err)
@@ -83,8 +83,8 @@ func (c *grpcClient) RecieveMatch(ctx context.Context) (_ *elgo.Match, err error
 	}
 
 	return &elgo.Match{
-		Player1: match.P1,
-		Player2: match.P2,
+		Player1: match.GetP1(),
+		Player2: match.GetP2(),
 	}, nil
 }
 

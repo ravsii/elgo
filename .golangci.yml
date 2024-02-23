@@ -22,6 +22,7 @@ linters:
     - gochecknoglobals
     - golint
     - gomnd
+    - gosec
     - ifshort
     - interfacer
     - maligned

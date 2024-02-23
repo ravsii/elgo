@@ -26,8 +26,8 @@ func (f kFactors) Less(i, j int) bool { return f[i].startsAt < f[j].startsAt }
 //
 // to create a new calculator.
 type Calculator struct {
-	k        float64
 	kFactors kFactors
+	k        float64
 }
 
 // New creates a new calculator for rating changes.
